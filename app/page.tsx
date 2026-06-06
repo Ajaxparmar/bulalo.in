@@ -1,5 +1,9 @@
+import HomeShowcase from "@/app/components/HomeShowcase";
+
 export default function Home() {
   return (
-    <h1>Hello</h1>
+    <main>
+      <HomeShowcase />
+    </main>
   );
 }
