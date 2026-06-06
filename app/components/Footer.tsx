@@ -55,7 +55,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-gray-800 mt-10 pt-6 text-center text-sm">
-          <p>Made with ❤️ by <a href="https://msoftcode.com" className="text-orange-400">MSOFTCODE</a></p>
+          <p>Made with ❤️ by <a href="https://codescaler.com" className="text-orange-400">codescaler</a></p>
           <p className="mt-1">© 2026 Bulalo.in. All Rights Reserved.</p>
         </div>
       </div>

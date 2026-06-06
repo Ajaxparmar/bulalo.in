@@ -171,9 +171,9 @@ export default function Header() {
 
         <div className="menu-contact">
           <h3>Need help?</h3>
-          <a href="tel:+919896987797">
+          <a href="tel:+919812866228">
             <i className="fas fa-phone-volume" />
-            9896987797
+            +91 98128 66228
           </a>
           <a href="mailto:help@bulalo.in">
             <i className="far fa-envelope" />
