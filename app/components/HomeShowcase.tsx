@@ -1,47 +1,29 @@
 import Link from 'next/link';
+import { prisma } from '@/app/lib/prisma';
 
-const categories = [
-  {
-    href: '/category/restaurants',
-    name: 'Restaurants',
-    className: 'showcase-category-restaurants',
-    icons: ['fas fa-utensils', 'fas fa-hamburger', 'fas fa-coffee'],
-  },
-  {
-    href: '/category/Online-Services',
-    name: 'Online Services',
-    className: 'showcase-category-online',
-    icons: ['fas fa-file-alt', 'fas fa-check-square', 'fas fa-user-check'],
-  },
-  {
-    href: '/category/Equipment',
-    name: 'Equipment',
-    className: 'showcase-category-equipment',
-    icons: ['fas fa-truck', 'fas fa-tractor', 'fas fa-tools'],
-  },
-];
+export default async function HomeShowcase() {
+  const categories = await prisma.mainCategory.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    take: 12,
+  });
 
-export default function HomeShowcase() {
   return (
     <section className="home-showcase" aria-label="Popular categories and featured service">
       <div className="showcase-categories">
         {categories.map((category) => (
           <Link
             key={category.name}
-            href={category.href}
-            className={`showcase-category ${category.className}`}
+            href={`/category/${category.slug}`}
+            className="showcase-category db-category-card"
           >
-            <div className="showcase-category-art" aria-hidden="true">
-              <strong>{category.name}</strong>
-              <div className="showcase-category-icons">
-                {category.icons.map((icon) => (
-                  <i key={icon} className={icon} />
-                ))}
-              </div>
-            </div>
+            <img src={category.imageUrl} alt={category.imageAlt || category.name} />
             <span>{category.name}</span>
           </Link>
         ))}
+        {categories.length === 0 ? (
+          <div className="empty-state">Admin can add categories to show them here.</div>
+        ) : null}
       </div>
 
       <Link href="/category/security-services" className="showcase-banner">

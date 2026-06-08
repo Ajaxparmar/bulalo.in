@@ -5,10 +5,9 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 
 const menuLinks = [
   {
-    href: 'https://user.bulalo.in/',
+    href: '/register',
     icon: 'fas fa-store',
     label: 'Listing with us',
-    external: true,
   },
   {
     href: '/listing/top-listings',
@@ -82,13 +81,15 @@ export default function Header() {
 
         <nav className="desktop-menu" aria-label="Desktop menu">
           <Link
-            href="https://user.bulalo.in/"
-            target="_blank"
-            rel="noreferrer"
+            href="/register"
             className="desktop-listing-link"
           >
             <span>Grow Your Business</span>
             Listing with us
+          </Link>
+          <Link href="/login">
+            <i className="fas fa-user" />
+            Login
           </Link>
           <Link href="/listing/top-listings">Top Listing</Link>
           <Link href="/contact-us">
@@ -150,8 +151,6 @@ export default function Header() {
             <Link
               key={link.label}
               href={link.href}
-              target={link.external ? '_blank' : undefined}
-              rel={link.external ? 'noreferrer' : undefined}
               onClick={closeMenu}
             >
               <i className={link.icon} />

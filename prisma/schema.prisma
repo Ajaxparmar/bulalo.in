@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  SHOP_OWNER
+  ADMIN
+}
+
+enum BusinessStatus {
+  PENDING_PAYMENT
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentPurpose {
+  BUSINESS_REGISTRATION
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  phone        String   @unique
+  passwordHash String
+  name         String?
+  email        String?
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  businesses Business[]
+  payments   Payment[]
+
+  @@index([role])
+}
+
+model Business {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId     String         @db.ObjectId
+  name        String
+  slug        String         @unique
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  phone       String
+  whatsapp    String?
+  email       String?
+  website     String?
+  address     String
+  city        String
+  state       String
+  pincode     String
+  latitude    Float?
+  longitude   Float?
+  status      BusinessStatus @default(PENDING_PAYMENT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  owner         User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  categories    BusinessCategory[]
+  subcategories BusinessSubcategory[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([city, status])
+}
+
+model MainCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String   @unique
+  imageUrl    String
+  imageAlt    String?
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subcategories Subcategory[]
+  businesses    BusinessCategory[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Subcategory {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  mainCategoryId String   @db.ObjectId
+  name           String
+  slug           String
+  imageUrl       String
+  imageAlt       String?
+  description    String?
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mainCategory MainCategory         @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+  businesses   BusinessSubcategory[]
+
+  @@unique([mainCategoryId, slug])
+  @@index([mainCategoryId, isActive, sortOrder])
+}
+
+model BusinessCategory {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId     String   @db.ObjectId
+  mainCategoryId String   @db.ObjectId
+  createdAt      DateTime @default(now())
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, mainCategoryId])
+  @@index([mainCategoryId])
+}
+
+model BusinessSubcategory {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId    String   @db.ObjectId
+  subcategoryId String   @db.ObjectId
+  createdAt     DateTime @default(now())
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subcategory Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, subcategoryId])
+  @@index([subcategoryId])
+}
+
+model Payment {
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String         @db.ObjectId
+  businessId            String?        @db.ObjectId
+  purpose               PaymentPurpose @default(BUSINESS_REGISTRATION)
+  status                PaymentStatus  @default(CREATED)
+  amountPaise           Int            @default(30000)
+  currency              String         @default("INR")
+  razorpayOrderId       String         @unique
+  razorpayPaymentId     String?        @unique
+  razorpaySignature     String?
+  razorpayReceipt       String?
+  razorpayMethod        String?
+  razorpayCapturedAt    DateTime?
+  razorpayFailureCode   String?
+  razorpayFailureReason String?
+  rawResponse           Json?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([status])
+}
+
+model SiteSetting {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     String
+  label     String?
+  isSecret  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
