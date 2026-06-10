@@ -7,21 +7,41 @@ import {
   saveRazorpaySettingsAction,
   updatePaymentStatusAction,
 } from "@/app/admin/actions";
+import ImageUploadField from "@/app/admin/ImageUploadField";
 
 const paymentStatuses = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
+const adminViews = ["overview", "businesses", "users", "payments", "categories", "settings"] as const;
+type AdminView = (typeof adminViews)[number];
+
+const viewDetails: Record<AdminView, { title: string; description: string }> = {
+  overview: { title: "Dashboard overview", description: "Here is what is happening with Bulalo.in today." },
+  businesses: { title: "Businesses", description: "Review enrolled businesses and their current status." },
+  users: { title: "Enrolled users", description: "View registered shop owners and their activity." },
+  payments: { title: "Payments", description: "Track income and update payment statuses." },
+  categories: { title: "Categories", description: "Create and manage directory categories." },
+  settings: { title: "Settings", description: "Manage Razorpay and registration fee settings." },
+};
 
 function settingValue(settings: { key: string; value: string }[], key: string, fallback = "") {
   return settings.find((setting) => setting.key === key)?.value ?? fallback;
 }
 
+function formatCurrency(amountPaise: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amountPaise / 100);
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; view?: string }>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
-  const [params, categories, payments, users, settings] = await Promise.all([
+  const [params, categories, payments, users, settings, businesses] = await Promise.all([
     searchParams,
     prisma.mainCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -47,35 +67,212 @@ export default async function AdminPage({
       },
     }),
     prisma.siteSetting.findMany(),
+    prisma.business.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
+  const totalIncomePaise = payments
+    .filter((payment) => payment.status === "CAPTURED")
+    .reduce((total, payment) => total + payment.amountPaise, 0);
+  const activeBusinesses = businesses.filter((business) => business.status === "ACTIVE").length;
+  const pendingBusinesses = businesses.filter((business) =>
+    ["PENDING_PAYMENT", "PENDING_REVIEW"].includes(business.status),
+  ).length;
+  const capturedPayments = payments.filter((payment) => payment.status === "CAPTURED").length;
+  const totalSubcategories = categories.reduce(
+    (total, category) => total + category.subcategories.length,
+    0,
+  );
+  const activeView: AdminView = adminViews.includes(params.view as AdminView)
+    ? params.view as AdminView
+    : "overview";
+
   return (
-    <main className="portal-page">
-      <div className="portal-header">
-        <div>
-          <p className="eyebrow">Admin console</p>
-          <h1>Business directory control</h1>
-        </div>
-        <Link href="/logout" className="secondary-button">
-          Logout
+    <main className="admin-dashboard">
+      <aside className="admin-sidebar">
+        <Link href="/" className="admin-sidebar-brand">
+          <span>BULA</span>LO.IN
         </Link>
-      </div>
+        <div className="admin-profile">
+          <div className="admin-avatar">{(admin.name || "A").slice(0, 1).toUpperCase()}</div>
+          <div>
+            <strong>{admin.name || "Administrator"}</strong>
+            <span>Admin account</span>
+          </div>
+        </div>
 
-      {params.error ? <p className="form-error">{params.error}</p> : null}
-      {params.success ? <p className="form-success">{params.success}</p> : null}
+        <nav className="admin-sidebar-nav" aria-label="Admin dashboard navigation">
+          <Link href="/admin?view=overview" className={activeView === "overview" ? "active" : ""}><i className="fas fa-th-large" /> Overview</Link>
+          <Link href="/admin?view=businesses" className={activeView === "businesses" ? "active" : ""}><i className="fas fa-store" /> Businesses</Link>
+          <Link href="/admin?view=users" className={activeView === "users" ? "active" : ""}><i className="fas fa-users" /> Enrolled users</Link>
+          <Link href="/admin?view=payments" className={activeView === "payments" ? "active" : ""}><i className="fas fa-wallet" /> Payments</Link>
+          <Link href="/admin?view=categories" className={activeView === "categories" ? "active" : ""}><i className="fas fa-layer-group" /> Categories</Link>
+          <Link href="/admin?view=settings" className={activeView === "settings" ? "active" : ""}><i className="fas fa-cog" /> Settings</Link>
+        </nav>
 
-      <section className="admin-grid">
-        <div className="data-panel">
+        <Link href="/logout" className="admin-sidebar-logout">
+          <i className="fas fa-sign-out-alt" /> Logout
+        </Link>
+      </aside>
+
+      <div className="admin-dashboard-content">
+        <header className="admin-dashboard-header">
+          <div>
+            <p>Admin dashboard</p>
+            <h1>{viewDetails[activeView].title}</h1>
+            <span>{viewDetails[activeView].description}</span>
+          </div>
+          <Link href="/" className="admin-view-site"><i className="fas fa-external-link-alt" /> View website</Link>
+        </header>
+
+        {params.error ? <p className="form-error">{params.error}</p> : null}
+        {params.success ? <p className="form-success">{params.success}</p> : null}
+
+        {activeView === "overview" ? (
+          <>
+          <section className="admin-stat-grid" aria-label="Dashboard overview">
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon income"><i className="fas fa-rupee-sign" /></div>
+            <span>Total income</span>
+            <strong>{formatCurrency(totalIncomePaise)}</strong>
+            <small>{capturedPayments} successful payments</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon business"><i className="fas fa-store" /></div>
+            <span>Businesses enrolled</span>
+            <strong>{businesses.length}</strong>
+            <small>{activeBusinesses} active businesses</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon user"><i className="fas fa-users" /></div>
+            <span>Shop owners</span>
+            <strong>{users.length}</strong>
+            <small>Registered owner accounts</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon pending"><i className="fas fa-clock" /></div>
+            <span>Pending approval</span>
+            <strong>{pendingBusinesses}</strong>
+            <small>Payment or review pending</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon category"><i className="fas fa-layer-group" /></div>
+            <span>Total categories</span>
+            <strong>{categories.length}</strong>
+            <small>Main service categories</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon subcategory"><i className="fas fa-sitemap" /></div>
+            <span>Total subcategories</span>
+            <strong>{totalSubcategories}</strong>
+            <small>Services inside categories</small>
+          </article>
+          </section>
+
+          <section className="admin-overview-grid">
+          <div className="admin-white-panel">
+            <div className="admin-section-heading">
+              <div>
+                <span>Business activity</span>
+                <h2>Recently enrolled businesses</h2>
+              </div>
+              <strong>{businesses.length} total</strong>
+            </div>
+            <div className="admin-business-list">
+              {businesses.slice(0, 6).map((business) => (
+                <div key={business.id}>
+                  <span className="admin-business-mark">{business.name.slice(0, 1)}</span>
+                  <div>
+                    <strong>{business.name}</strong>
+                    <small>{business.city} · {business.createdAt.toLocaleDateString("en-IN")}</small>
+                  </div>
+                  <span className={`admin-status ${business.status.toLowerCase()}`}>
+                    {business.status.replaceAll("_", " ")}
+                  </span>
+                </div>
+              ))}
+              {businesses.length === 0 ? <p className="empty-state">No businesses enrolled yet.</p> : null}
+            </div>
+          </div>
+
+          <div className="admin-white-panel">
+            <div className="admin-section-heading">
+              <div>
+                <span>Directory health</span>
+                <h2>Business status</h2>
+              </div>
+            </div>
+            <div className="admin-status-summary">
+              <div><span>Active</span><strong>{activeBusinesses}</strong></div>
+              <div><span>Pending</span><strong>{pendingBusinesses}</strong></div>
+              <div><span>Suspended</span><strong>{businesses.filter((item) => item.status === "SUSPENDED").length}</strong></div>
+              <div><span>Rejected</span><strong>{businesses.filter((item) => item.status === "REJECTED").length}</strong></div>
+            </div>
+          </div>
+          </section>
+          </>
+        ) : null}
+
+        {activeView === "businesses" ? (
+          <section className="admin-white-panel">
+            <div className="admin-section-heading">
+              <div>
+                <span>All businesses</span>
+                <h2>Enrolled business directory</h2>
+              </div>
+              <strong>{businesses.length} total</strong>
+            </div>
+            <div className="admin-business-list">
+              {businesses.map((business) => (
+                <div key={business.id}>
+                  <span className="admin-business-mark">{business.name.slice(0, 1)}</span>
+                  <div>
+                    <strong>{business.name}</strong>
+                    <small>{business.city} · Joined {business.createdAt.toLocaleDateString("en-IN")}</small>
+                  </div>
+                  <span className={`admin-status ${business.status.toLowerCase()}`}>
+                    {business.status.replaceAll("_", " ")}
+                  </span>
+                </div>
+              ))}
+              {businesses.length === 0 ? <p className="empty-state">No businesses enrolled yet.</p> : null}
+            </div>
+          </section>
+        ) : null}
+
+        {activeView === "categories" ? (
+          <>
+        <section className="admin-stat-grid admin-category-stats" aria-label="Category overview">
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon category"><i className="fas fa-layer-group" /></div>
+            <span>Total categories</span>
+            <strong>{categories.length}</strong>
+            <small>Main service categories</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon subcategory"><i className="fas fa-sitemap" /></div>
+            <span>Total subcategories</span>
+            <strong>{totalSubcategories}</strong>
+            <small>Services inside categories</small>
+          </article>
+        </section>
+        <section className="admin-grid">
+          <div className="admin-white-panel">
           <h2>Add main category</h2>
           <form action={createCategoryAction} className="stack-form compact">
             <label>
               Category name
               <input name="name" required />
             </label>
-            <label>
-              Image URL
-              <input name="imageUrl" type="url" required placeholder="https://..." />
-            </label>
+            <ImageUploadField label="Upload image" />
             <label>
               Image alt text
               <input name="imageAlt" />
@@ -90,9 +287,9 @@ export default async function AdminPage({
             </label>
             <button type="submit" className="primary-button">Add category</button>
           </form>
-        </div>
+          </div>
 
-        <div className="data-panel">
+          <div className="admin-white-panel">
           <h2>Add subcategory</h2>
           <form action={createSubcategoryAction} className="stack-form compact">
             <label>
@@ -109,14 +306,6 @@ export default async function AdminPage({
               <input name="name" required />
             </label>
             <label>
-              Image URL
-              <input name="imageUrl" type="url" required placeholder="https://..." />
-            </label>
-            <label>
-              Image alt text
-              <input name="imageAlt" />
-            </label>
-            <label>
               Sort order
               <input name="sortOrder" type="number" defaultValue={0} />
             </label>
@@ -126,10 +315,10 @@ export default async function AdminPage({
             </label>
             <button type="submit" className="primary-button">Add subcategory</button>
           </form>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <section className="data-panel">
+        <section className="admin-white-panel">
         <h2>Categories</h2>
         <div className="category-list">
           {categories.map((category) => (
@@ -143,9 +332,12 @@ export default async function AdminPage({
             </article>
           ))}
         </div>
-      </section>
+        </section>
+          </>
+        ) : null}
 
-      <section className="data-panel">
+        {activeView === "settings" ? (
+        <section className="admin-white-panel">
         <h2>Razorpay settings</h2>
         <form action={saveRazorpaySettingsAction} className="form-grid">
           <label>
@@ -166,9 +358,11 @@ export default async function AdminPage({
           </label>
           <button type="submit" className="primary-button">Save settings</button>
         </form>
-      </section>
+        </section>
+        ) : null}
 
-      <section className="data-panel">
+        {activeView === "users" ? (
+        <section className="admin-white-panel">
         <h2>Enrolled users</h2>
         <div className="table-wrap">
           <table>
@@ -194,9 +388,26 @@ export default async function AdminPage({
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+        ) : null}
 
-      <section className="data-panel">
+        {activeView === "payments" ? (
+          <>
+          <section className="admin-stat-grid admin-payment-stats" aria-label="Payment overview">
+            <article className="admin-stat-card">
+              <div className="admin-stat-icon income"><i className="fas fa-rupee-sign" /></div>
+              <span>Total captured income</span>
+              <strong>{formatCurrency(totalIncomePaise)}</strong>
+              <small>{capturedPayments} successful payments</small>
+            </article>
+            <article className="admin-stat-card">
+              <div className="admin-stat-icon pending"><i className="fas fa-clock" /></div>
+              <span>Pending payments</span>
+              <strong>{payments.filter((payment) => ["CREATED", "AUTHORIZED"].includes(payment.status)).length}</strong>
+              <small>Awaiting completion</small>
+            </article>
+          </section>
+        <section className="admin-white-panel">
         <h2>Payment table</h2>
         <div className="table-wrap">
           <table>
@@ -236,7 +447,10 @@ export default async function AdminPage({
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+          </>
+        ) : null}
+      </div>
     </main>
   );
 }

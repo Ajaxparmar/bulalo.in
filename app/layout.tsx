@@ -5,6 +5,7 @@ import "./style.css";
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
+
 export const metadata: Metadata = {
   title: "Bulalo.in",
   description: "Find local businesses and services near you.",

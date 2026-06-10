@@ -12,15 +12,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
+  background: #ffffff;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -28,11 +22,13 @@ body {
 .auth-page,
 .portal-page,
 .listing-page {
+  background: #ffffff;
   width: min(1180px, calc(100% - 32px));
   margin: 32px auto 0;
 }
 
 .auth-page {
+  min-height: calc(100vh - 142px);
   display: grid;
   place-items: start center;
 }

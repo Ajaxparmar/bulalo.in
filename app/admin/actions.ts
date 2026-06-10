@@ -1,22 +1,69 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { slugify, uniqueSlug } from "@/app/lib/slug";
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const imageExtensions: Record<string, string> = {
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+async function saveUploadedImage(entry: FormDataEntryValue | null, folder: string) {
+  if (!(entry instanceof File) || entry.size === 0) {
+    throw new Error("Please select an image to upload");
+  }
+
+  const extension = imageExtensions[entry.type];
+
+  if (!extension) {
+    throw new Error("Only JPG, PNG, GIF, and WebP images are allowed");
+  }
+
+  if (entry.size > MAX_IMAGE_SIZE) {
+    throw new Error("Image must be smaller than 5 MB");
+  }
+
+  const uploadDirectory = path.join(process.cwd(), "public", "uploads", folder);
+  const filename = `${Date.now()}-${randomUUID()}.${extension}`;
+
+  await mkdir(uploadDirectory, { recursive: true });
+  await writeFile(path.join(uploadDirectory, filename), Buffer.from(await entry.arrayBuffer()));
+
+  return `/uploads/${folder}/${filename}`;
+}
+
+function uploadErrorRedirect(error: unknown): never {
+  const message = error instanceof Error ? error.message : "Image upload failed";
+  redirect(`/admin?view=categories&error=${encodeURIComponent(message)}`);
+}
+
 export async function createCategoryAction(formData: FormData) {
   await requireAdmin();
 
   const name = String(formData.get("name") || "").trim();
-  const imageUrl = String(formData.get("imageUrl") || "").trim();
   const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
   const description = String(formData.get("description") || "").trim() || null;
   const sortOrder = Number(formData.get("sortOrder") || 0);
 
-  if (!name || !imageUrl) {
-    redirect("/admin?error=Category%20name%20and%20image%20are%20required");
+  if (!name) {
+    redirect("/admin?view=categories&error=Category%20name%20and%20image%20are%20required");
+  }
+
+  let imageUrl: string;
+
+  try {
+    imageUrl = await saveUploadedImage(formData.get("image"), "categories");
+  } catch (error) {
+    uploadErrorRedirect(error);
   }
 
   await prisma.mainCategory.create({
@@ -31,7 +78,7 @@ export async function createCategoryAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
-  redirect("/admin?success=Category%20added");
+  redirect("/admin?view=categories&success=Category%20added");
 }
 
 export async function createSubcategoryAction(formData: FormData) {
@@ -39,13 +86,11 @@ export async function createSubcategoryAction(formData: FormData) {
 
   const mainCategoryId = String(formData.get("mainCategoryId") || "");
   const name = String(formData.get("name") || "").trim();
-  const imageUrl = String(formData.get("imageUrl") || "").trim();
-  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
   const description = String(formData.get("description") || "").trim() || null;
   const sortOrder = Number(formData.get("sortOrder") || 0);
 
-  if (!mainCategoryId || !name || !imageUrl) {
-    redirect("/admin?error=Subcategory%20name,%20parent%20category,%20and%20image%20are%20required");
+  if (!mainCategoryId || !name) {
+    redirect("/admin?view=categories&error=Subcategory%20name%20and%20parent%20category%20are%20required");
   }
 
   await prisma.subcategory.create({
@@ -53,15 +98,13 @@ export async function createSubcategoryAction(formData: FormData) {
       mainCategoryId,
       name,
       slug: `${slugify(name)}-${Date.now().toString(36)}`,
-      imageUrl,
-      imageAlt,
       description,
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     },
   });
 
   revalidatePath("/admin");
-  redirect("/admin?success=Subcategory%20added");
+  redirect("/admin?view=categories&success=Subcategory%20added");
 }
 
 export async function saveRazorpaySettingsAction(formData: FormData) {
@@ -85,7 +128,7 @@ export async function saveRazorpaySettingsAction(formData: FormData) {
   );
 
   revalidatePath("/admin");
-  redirect("/admin?success=Razorpay%20settings%20saved");
+  redirect("/admin?view=settings&success=Razorpay%20settings%20saved");
 }
 
 export async function updatePaymentStatusAction(formData: FormData) {
@@ -96,7 +139,7 @@ export async function updatePaymentStatusAction(formData: FormData) {
   const allowed = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
 
   if (!paymentId || !allowed.includes(status)) {
-    redirect("/admin?error=Invalid%20payment%20status");
+    redirect("/admin?view=payments&error=Invalid%20payment%20status");
   }
 
   const payment = await prisma.payment.update({
@@ -115,5 +158,5 @@ export async function updatePaymentStatusAction(formData: FormData) {
   }
 
   revalidatePath("/admin");
-  redirect("/admin?success=Payment%20updated");
+  redirect("/admin?view=payments&success=Payment%20updated");
 }

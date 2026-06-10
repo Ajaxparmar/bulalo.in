@@ -112,8 +112,6 @@ model Subcategory {
   mainCategoryId String   @db.ObjectId
   name           String
   slug           String
-  imageUrl       String
-  imageAlt       String?
   description    String?
   sortOrder      Int      @default(0)
   isActive       Boolean  @default(true)
