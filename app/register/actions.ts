@@ -20,10 +20,11 @@ export async function registerOwnerAction(formData: FormData) {
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim();
   const pincode = String(formData.get("pincode") || "").trim();
+  const planId = String(formData.get("planId") || "");
   const categoryIds = checkedValues(formData, "categoryIds");
   const subcategoryIds = checkedValues(formData, "subcategoryIds");
 
-  if (!name || !phone || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode) {
+  if (!name || !phone || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId) {
     redirect("/register?error=Please%20fill%20all%20required%20fields");
   }
 
@@ -31,23 +32,28 @@ export async function registerOwnerAction(formData: FormData) {
     redirect("/register?error=Select%201%20to%203%20categories%20and%201%20to%203%20subcategories");
   }
 
-  const matchingSubcategories = await prisma.subcategory.findMany({
-    where: {
-      id: { in: subcategoryIds },
-      mainCategoryId: { in: categoryIds },
-      isActive: true,
-    },
-    select: { id: true },
-  });
+  const [matchingSubcategories, plan] = await Promise.all([
+    prisma.subcategory.findMany({
+      where: {
+        id: { in: subcategoryIds },
+        mainCategoryId: { in: categoryIds },
+        isActive: true,
+      },
+      select: { id: true },
+    }),
+    prisma.subscriptionPlan.findFirst({
+      where: { id: planId, isActive: true },
+    }),
+  ]);
 
-  if (matchingSubcategories.length !== subcategoryIds.length) {
+  if (matchingSubcategories.length !== subcategoryIds.length || !plan) {
     redirect("/register?error=Selected%20subcategories%20must%20belong%20to%20selected%20categories");
   }
 
   const existingUser = await prisma.user.findUnique({ where: { phone } });
 
   if (existingUser) {
-    redirect("/register?error=Phone%20number%20is%20already%20registered");
+    redirect("/login?error=This%20phone%20number%20is%20already%20saved.%20Login%20to%20continue%20payment");
   }
 
   const user = await prisma.user.create({
@@ -75,6 +81,19 @@ export async function registerOwnerAction(formData: FormData) {
     },
   });
 
+  const payment = await prisma.payment.create({
+    data: {
+      userId: user.id,
+      businessId: business.id,
+      planId: plan.id,
+      amountPaise: plan.pricePaise,
+      currency: "INR",
+      status: "CREATED",
+      razorpayOrderId: `pending_${business.id}_${Date.now()}`,
+      razorpayReceipt: `REG-${business.id}`,
+    },
+  });
+
   await Promise.all([
     ...categoryIds.map((mainCategoryId) =>
       prisma.businessCategory.create({
@@ -86,19 +105,8 @@ export async function registerOwnerAction(formData: FormData) {
         data: { businessId: business.id, subcategoryId },
       }),
     ),
-    prisma.payment.create({
-      data: {
-        userId: user.id,
-        businessId: business.id,
-        amountPaise: 30000,
-        currency: "INR",
-        status: "CREATED",
-        razorpayOrderId: `registration_${business.id}_${Date.now()}`,
-        razorpayReceipt: `REG-${Date.now()}`,
-      },
-    }),
   ]);
 
   await createSession(user.id);
-  redirect("/dashboard");
+  redirect(`/register/payment/${payment.id}`);
 }

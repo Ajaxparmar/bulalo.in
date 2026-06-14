@@ -15,5 +15,20 @@ export async function loginAction(formData: FormData) {
   }
 
   await createSession(user.id);
-  redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
+
+  if (user.role === "ADMIN") {
+    redirect("/admin");
+  }
+
+  const pendingPayment = await prisma.payment.findFirst({
+    where: {
+      userId: user.id,
+      status: { in: ["CREATED", "AUTHORIZED", "FAILED"] },
+      business: { is: { status: "PENDING_PAYMENT" } },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  redirect(pendingPayment ? `/register/payment/${pendingPayment.id}` : "/dashboard");
 }

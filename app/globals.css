@@ -207,6 +207,79 @@ body {
   color: #6b7280;
 }
 
+.plan-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.plan-choice-card {
+  display: grid;
+  gap: 5px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 15px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.plan-choice-card:has(input:checked) {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+
+.plan-choice-card input {
+  width: auto;
+}
+
+.plan-choice-card strong,
+.plan-choice-card b {
+  color: #111827;
+}
+
+.plan-choice-card b {
+  font-size: 20px;
+}
+
+.payment-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.payment-summary {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fafb;
+}
+
+.payment-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.payment-summary span {
+  color: #6b7280;
+}
+
+.pending-payment-box {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 14px;
+  color: #9a3412;
+  background: #fff7ed;
+}
+
+.pending-payment-box .primary-button {
+  width: max-content;
+}
+
 .portal-header {
   display: flex;
   align-items: center;

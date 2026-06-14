@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
+import { completeRegistrationPayment } from "@/app/lib/payments";
 import { slugify, uniqueSlug } from "@/app/lib/slug";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -151,12 +152,85 @@ export async function updatePaymentStatusAction(formData: FormData) {
   });
 
   if (status === "CAPTURED" && payment.businessId) {
-    await prisma.business.update({
-      where: { id: payment.businessId },
-      data: { status: "ACTIVE" },
-    });
+    if (payment.planId) {
+      await completeRegistrationPayment(payment.id);
+    } else {
+      await prisma.business.update({
+        where: { id: payment.businessId },
+        data: { status: "ACTIVE" },
+      });
+    }
   }
 
   revalidatePath("/admin");
   redirect("/admin?view=payments&success=Payment%20updated");
+}
+
+export async function createPlanAction(formData: FormData) {
+  await requireAdmin();
+
+  const name = String(formData.get("name") || "").trim();
+  const durationMonths = Number(formData.get("durationMonths"));
+  const priceRupees = Number(formData.get("priceRupees"));
+
+  if (
+    !name
+    || !Number.isInteger(durationMonths)
+    || durationMonths < 1
+    || !Number.isFinite(priceRupees)
+    || priceRupees < 0
+  ) {
+    redirect("/admin?view=plans&error=Enter%20a%20valid%20plan%20name%2C%20duration%2C%20and%20price");
+  }
+
+  await prisma.subscriptionPlan.create({
+    data: {
+      name,
+      durationMonths,
+      pricePaise: Math.round(priceRupees * 100),
+    },
+  });
+
+  revalidatePath("/admin");
+  redirect("/admin?view=plans&success=Plan%20created");
+}
+
+export async function assignPlanAction(formData: FormData) {
+  await requireAdmin();
+
+  const businessId = String(formData.get("businessId") || "");
+  const planId = String(formData.get("planId") || "");
+  const startsAtValue = String(formData.get("startsAt") || "");
+  const startsAt = startsAtValue ? new Date(`${startsAtValue}T00:00:00`) : new Date();
+  const plan = await prisma.subscriptionPlan.findFirst({
+    where: { id: planId, isActive: true },
+  });
+
+  if (!businessId || !plan || Number.isNaN(startsAt.getTime())) {
+    redirect("/admin?view=plans&error=Select%20a%20valid%20business%2C%20plan%2C%20and%20start%20date");
+  }
+
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { id: true },
+  });
+
+  if (!business) {
+    redirect("/admin?view=plans&error=Business%20not%20found");
+  }
+
+  const expiresAt = new Date(startsAt);
+  expiresAt.setMonth(expiresAt.getMonth() + plan.durationMonths);
+
+  await prisma.businessSubscription.create({
+    data: {
+      businessId,
+      planId,
+      startsAt,
+      expiresAt,
+    },
+  });
+
+  revalidatePath("/admin");
+  redirect("/admin?view=plans&success=Plan%20assigned");
 }

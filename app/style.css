@@ -1198,7 +1198,7 @@ footer a:hover {
 
 .admin-profile strong {
     color: #20242d;
-    font-size: 13px;
+    font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1206,7 +1206,7 @@ footer a:hover {
 
 .admin-profile span {
     color: #9a9faa;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .admin-sidebar-nav {
@@ -1221,7 +1221,7 @@ footer a:hover {
     color: #687080;
     display: flex;
     font-family: "PoppinsMedium", Arial, sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     gap: 11px;
     padding: 11px 12px;
     text-decoration: none;
@@ -1266,7 +1266,7 @@ footer a:hover {
 .admin-section-heading span {
     color: #9ba1ad;
     font-family: "PoppinsMedium", Arial, sans-serif;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: .8px;
     margin: 0 0 5px;
     text-transform: uppercase;
@@ -1275,13 +1275,13 @@ footer a:hover {
 .admin-dashboard-header h1 {
     color: #1e222b;
     font-family: "PoppinsBold", Arial, sans-serif;
-    font-size: clamp(24px, 2.5vw, 34px);
+    font-size: clamp(26px, 2.5vw, 36px);
     margin: 0 0 3px;
 }
 
 .admin-dashboard-header > div > span {
     color: #8a909c;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .admin-view-site {
@@ -1291,7 +1291,7 @@ footer a:hover {
     border-radius: 8px;
     color: #303641;
     display: inline-flex;
-    font-size: 11px;
+    font-size: 12px;
     gap: 7px;
     padding: 10px 13px;
     text-decoration: none;
@@ -1309,6 +1309,10 @@ footer a:hover {
 
 .admin-category-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-plan-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-stat-card,
@@ -1367,19 +1371,19 @@ footer a:hover {
 
 .admin-stat-card > span {
     color: #8d939e;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-stat-card > strong {
     color: #20242d;
     font-family: "PoppinsBold", Arial, sans-serif;
-    font-size: 25px;
+    font-size: 27px;
     margin: 3px 0;
 }
 
 .admin-stat-card small {
     color: #a5aab3;
-    font-size: 9px;
+    font-size: 10px;
 }
 
 .admin-overview-grid {
@@ -1397,7 +1401,7 @@ footer a:hover {
 .admin-section-heading h2 {
     color: #242932;
     font-family: "PoppinsBold", Arial, sans-serif;
-    font-size: 16px;
+    font-size: 18px;
     margin: 0 0 18px;
 }
 
@@ -1416,7 +1420,7 @@ footer a:hover {
     background: #f3f4f8;
     border-radius: 999px;
     color: #687080;
-    font-size: 9px;
+    font-size: 10px;
     padding: 5px 8px;
 }
 
@@ -1451,19 +1455,19 @@ footer a:hover {
 
 .admin-business-list strong {
     color: #343943;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-business-list small {
     color: #a1a6af;
-    font-size: 9px;
+    font-size: 10px;
 }
 
 .admin-status {
     background: #f4f4f4;
     border-radius: 999px;
     color: #777;
-    font-size: 8px;
+    font-size: 9px;
     padding: 5px 7px;
     text-transform: capitalize;
 }
@@ -1480,7 +1484,8 @@ footer a:hover {
 }
 
 .admin-status.suspended,
-.admin-status.rejected {
+.admin-status.rejected,
+.admin-status.expired {
     background: #fff0ef;
     color: #c8514a;
 }
@@ -1502,13 +1507,13 @@ footer a:hover {
 
 .admin-status-summary span {
     color: #747b87;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-status-summary strong {
     color: #252a34;
     font-family: "PoppinsBold", Arial, sans-serif;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .admin-dashboard .admin-grid {
@@ -1518,14 +1523,14 @@ footer a:hover {
 .admin-dashboard .stack-form label,
 .admin-dashboard .form-grid label {
     color: #626976;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-dashboard input,
 .admin-dashboard textarea,
 .admin-dashboard select {
     border-color: #e3e6eb;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-dashboard input[type="file"] {
@@ -1547,7 +1552,7 @@ footer a:hover {
 
 .admin-field-help {
     color: #9ca2ad;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 400;
 }
 
@@ -1579,7 +1584,7 @@ footer a:hover {
 
 .admin-dashboard .primary-button {
     background: #101b50;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-dashboard .category-list {
@@ -1599,11 +1604,11 @@ footer a:hover {
 }
 
 .admin-dashboard .category-list h3 {
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .admin-dashboard .category-list p {
-    font-size: 9px;
+    font-size: 10px;
     margin: 3px 0;
 }
 
@@ -1615,13 +1620,13 @@ footer a:hover {
 .admin-dashboard th {
     background: #fafbfc;
     color: #777e89;
-    font-size: 9px;
+    font-size: 10px;
     text-transform: uppercase;
 }
 
 .admin-dashboard td {
     color: #555d69;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .admin-dashboard th,

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import {
+  assignPlanAction,
   createCategoryAction,
+  createPlanAction,
   createSubcategoryAction,
   saveRazorpaySettingsAction,
   updatePaymentStatusAction,
@@ -10,7 +12,7 @@ import {
 import ImageUploadField from "@/app/admin/ImageUploadField";
 
 const paymentStatuses = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
-const adminViews = ["overview", "businesses", "users", "payments", "categories", "settings"] as const;
+const adminViews = ["overview", "businesses", "users", "payments", "plans", "categories", "settings"] as const;
 type AdminView = (typeof adminViews)[number];
 
 const viewDetails: Record<AdminView, { title: string; description: string }> = {
@@ -18,6 +20,7 @@ const viewDetails: Record<AdminView, { title: string; description: string }> = {
   businesses: { title: "Businesses", description: "Review enrolled businesses and their current status." },
   users: { title: "Enrolled users", description: "View registered shop owners and their activity." },
   payments: { title: "Payments", description: "Track income and update payment statuses." },
+  plans: { title: "Subscription plans", description: "Create plans and track active or expired subscriptions." },
   categories: { title: "Categories", description: "Create and manage directory categories." },
   settings: { title: "Settings", description: "Manage Razorpay and registration fee settings." },
 };
@@ -41,7 +44,7 @@ export default async function AdminPage({
 }) {
   const admin = await requireAdmin();
 
-  const [params, categories, payments, users, settings, businesses] = await Promise.all([
+  const [params, categories, payments, users, settings, businesses, plans, subscriptions] = await Promise.all([
     searchParams,
     prisma.mainCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -77,8 +80,24 @@ export default async function AdminPage({
         createdAt: true,
       },
     }),
+    prisma.subscriptionPlan.findMany({
+      orderBy: [{ durationMonths: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.businessSubscription.findMany({
+      orderBy: { expiresAt: "desc" },
+      include: {
+        business: { include: { owner: true } },
+        plan: true,
+      },
+    }),
   ]);
 
+  const now = new Date();
+  const activeSubscriptions = subscriptions.filter(
+    (subscription) => subscription.startsAt <= now && subscription.expiresAt > now,
+  );
+  const expiredSubscriptions = subscriptions.filter((subscription) => subscription.expiresAt <= now);
+  const upcomingSubscriptions = subscriptions.filter((subscription) => subscription.startsAt > now);
   const totalIncomePaise = payments
     .filter((payment) => payment.status === "CAPTURED")
     .reduce((total, payment) => total + payment.amountPaise, 0);
@@ -114,6 +133,7 @@ export default async function AdminPage({
           <Link href="/admin?view=businesses" className={activeView === "businesses" ? "active" : ""}><i className="fas fa-store" /> Businesses</Link>
           <Link href="/admin?view=users" className={activeView === "users" ? "active" : ""}><i className="fas fa-users" /> Enrolled users</Link>
           <Link href="/admin?view=payments" className={activeView === "payments" ? "active" : ""}><i className="fas fa-wallet" /> Payments</Link>
+          <Link href="/admin?view=plans" className={activeView === "plans" ? "active" : ""}><i className="fas fa-calendar-alt" /> Plans</Link>
           <Link href="/admin?view=categories" className={activeView === "categories" ? "active" : ""}><i className="fas fa-layer-group" /> Categories</Link>
           <Link href="/admin?view=settings" className={activeView === "settings" ? "active" : ""}><i className="fas fa-cog" /> Settings</Link>
         </nav>
@@ -162,6 +182,12 @@ export default async function AdminPage({
             <span>Pending approval</span>
             <strong>{pendingBusinesses}</strong>
             <small>Payment or review pending</small>
+          </article>
+          <article className="admin-stat-card">
+            <div className="admin-stat-icon pending"><i className="fas fa-calendar-times" /></div>
+            <span>Expired plans</span>
+            <strong>{expiredSubscriptions.length}</strong>
+            <small>Subscriptions requiring renewal</small>
           </article>
           <article className="admin-stat-card">
             <div className="admin-stat-icon category"><i className="fas fa-layer-group" /></div>
@@ -359,6 +385,180 @@ export default async function AdminPage({
           <button type="submit" className="primary-button">Save settings</button>
         </form>
         </section>
+        ) : null}
+
+        {activeView === "plans" ? (
+          <>
+            <section className="admin-stat-grid admin-plan-stats" aria-label="Subscription overview">
+              <article className="admin-stat-card">
+                <div className="admin-stat-icon category"><i className="fas fa-calendar-check" /></div>
+                <span>Available plans</span>
+                <strong>{plans.filter((plan) => plan.isActive).length}</strong>
+                <small>Plans ready to assign</small>
+              </article>
+              <article className="admin-stat-card">
+                <div className="admin-stat-icon income"><i className="fas fa-check-circle" /></div>
+                <span>Active subscriptions</span>
+                <strong>{activeSubscriptions.length}</strong>
+                <small>Businesses currently covered</small>
+              </article>
+              <article className="admin-stat-card">
+                <div className="admin-stat-icon user"><i className="fas fa-calendar-plus" /></div>
+                <span>Upcoming subscriptions</span>
+                <strong>{upcomingSubscriptions.length}</strong>
+                <small>Scheduled to begin later</small>
+              </article>
+              <article className="admin-stat-card">
+                <div className="admin-stat-icon pending"><i className="fas fa-calendar-times" /></div>
+                <span>Expired subscriptions</span>
+                <strong>{expiredSubscriptions.length}</strong>
+                <small>Plans requiring renewal</small>
+              </article>
+            </section>
+
+            <section className="admin-grid">
+              <div className="admin-white-panel">
+                <h2>Create plan</h2>
+                <form action={createPlanAction} className="stack-form compact">
+                  <label>
+                    Plan name
+                    <input name="name" placeholder="Example: 3 Month Plan" required />
+                  </label>
+                  <label>
+                    Duration in months
+                    <input name="durationMonths" type="number" min="1" defaultValue={1} required />
+                  </label>
+                  <label>
+                    Price in rupees
+                    <input name="priceRupees" type="number" min="0" step="0.01" required />
+                  </label>
+                  <button type="submit" className="primary-button">Create plan</button>
+                </form>
+              </div>
+
+              <div className="admin-white-panel">
+                <h2>Assign plan to business</h2>
+                <form action={assignPlanAction} className="stack-form compact">
+                  <label>
+                    Business
+                    <select name="businessId" required>
+                      <option value="">Select business</option>
+                      {businesses.map((business) => (
+                        <option key={business.id} value={business.id}>{business.name} · {business.city}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Plan
+                    <select name="planId" required>
+                      <option value="">Select plan</option>
+                      {plans.filter((plan) => plan.isActive).map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} · {plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"} · {formatCurrency(plan.pricePaise)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Start date
+                    <input name="startsAt" type="date" defaultValue={now.toISOString().slice(0, 10)} required />
+                  </label>
+                  <button type="submit" className="primary-button">Assign plan</button>
+                </form>
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div>
+                  <span>Plan catalogue</span>
+                  <h2>Available plans</h2>
+                </div>
+                <strong>{plans.length} total</strong>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Plan</th><th>Duration</th><th>Price</th><th>Status</th><th>Created</th></tr>
+                  </thead>
+                  <tbody>
+                    {plans.map((plan) => (
+                      <tr key={plan.id}>
+                        <td>{plan.name}</td>
+                        <td>{plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"}</td>
+                        <td>{formatCurrency(plan.pricePaise)}</td>
+                        <td>{plan.isActive ? "Active" : "Inactive"}</td>
+                        <td>{plan.createdAt.toLocaleDateString("en-IN")}</td>
+                      </tr>
+                    ))}
+                    {plans.length === 0 ? <tr><td colSpan={5}>No plans created yet.</td></tr> : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div>
+                  <span>Current coverage</span>
+                  <h2>Active and upcoming subscriptions</h2>
+                </div>
+                <strong>{activeSubscriptions.length + upcomingSubscriptions.length} total</strong>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expiry date</th><th>Status</th></tr>
+                  </thead>
+                  <tbody>
+                    {[...upcomingSubscriptions, ...activeSubscriptions].map((subscription) => (
+                      <tr key={subscription.id}>
+                        <td>{subscription.business.name}</td>
+                        <td>{subscription.business.owner.name || subscription.business.owner.phone}</td>
+                        <td>{subscription.plan.name}</td>
+                        <td>{subscription.startsAt.toLocaleDateString("en-IN")}</td>
+                        <td>{subscription.expiresAt.toLocaleDateString("en-IN")}</td>
+                        <td>{subscription.startsAt > now ? "Upcoming" : "Active"}</td>
+                      </tr>
+                    ))}
+                    {activeSubscriptions.length + upcomingSubscriptions.length === 0 ? (
+                      <tr><td colSpan={6}>No active or upcoming subscriptions.</td></tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div>
+                  <span>Renewal required</span>
+                  <h2>Expired subscriptions</h2>
+                </div>
+                <strong>{expiredSubscriptions.length} expired</strong>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expired on</th><th>Status</th></tr>
+                  </thead>
+                  <tbody>
+                    {expiredSubscriptions.map((subscription) => (
+                      <tr key={subscription.id}>
+                        <td>{subscription.business.name}</td>
+                        <td>{subscription.business.owner.name || subscription.business.owner.phone}</td>
+                        <td>{subscription.plan.name}</td>
+                        <td>{subscription.startsAt.toLocaleDateString("en-IN")}</td>
+                        <td>{subscription.expiresAt.toLocaleDateString("en-IN")}</td>
+                        <td><span className="admin-status expired">Expired</span></td>
+                      </tr>
+                    ))}
+                    {expiredSubscriptions.length === 0 ? <tr><td colSpan={6}>No expired subscriptions.</td></tr> : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
         ) : null}
 
         {activeView === "users" ? (

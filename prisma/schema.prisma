@@ -79,10 +79,11 @@ model Business {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  owner         User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   payments      Payment[]
   categories    BusinessCategory[]
   subcategories BusinessSubcategory[]
+  subscriptions BusinessSubscription[]
 
   @@index([ownerId])
   @@index([status])
@@ -118,7 +119,7 @@ model Subcategory {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  mainCategory MainCategory         @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+  mainCategory MainCategory          @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
   businesses   BusinessSubcategory[]
 
   @@unique([mainCategoryId, slug])
@@ -151,16 +152,52 @@ model BusinessSubcategory {
   @@index([subcategoryId])
 }
 
+model SubscriptionPlan {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  durationMonths Int
+  pricePaise     Int
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscriptions BusinessSubscription[]
+  payments      Payment[]
+
+  @@index([isActive, durationMonths])
+}
+
+model BusinessSubscription {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId String   @db.ObjectId
+  planId     String   @db.ObjectId
+  startsAt   DateTime
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  paymentId  String?  @db.ObjectId
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment  Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, expiresAt])
+  @@index([expiresAt])
+  @@index([paymentId])
+  @@index([planId])
+}
+
 model Payment {
   id                    String         @id @default(auto()) @map("_id") @db.ObjectId
   userId                String         @db.ObjectId
   businessId            String?        @db.ObjectId
+  planId                String?        @db.ObjectId
   purpose               PaymentPurpose @default(BUSINESS_REGISTRATION)
   status                PaymentStatus  @default(CREATED)
   amountPaise           Int            @default(30000)
   currency              String         @default("INR")
   razorpayOrderId       String         @unique
-  razorpayPaymentId     String?        @unique
+  razorpayPaymentId     String?
   razorpaySignature     String?
   razorpayReceipt       String?
   razorpayMethod        String?
@@ -171,11 +208,15 @@ model Payment {
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business?              @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  plan          SubscriptionPlan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  subscriptions BusinessSubscription[]
 
   @@index([userId])
   @@index([businessId])
+  @@index([planId])
+  @@index([razorpayPaymentId])
   @@index([status])
 }
 

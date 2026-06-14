@@ -7,7 +7,7 @@ export default async function RegisterPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [params, categories] = await Promise.all([
+  const [params, categories, plans] = await Promise.all([
     searchParams,
     prisma.mainCategory.findMany({
       where: { isActive: true },
@@ -19,6 +19,10 @@ export default async function RegisterPage({
         },
       },
     }),
+    prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      orderBy: [{ durationMonths: "asc" }, { pricePaise: "asc" }],
+    }),
   ]);
 
   return (
@@ -27,12 +31,28 @@ export default async function RegisterPage({
         <div>
           <p className="eyebrow">Business enrollment</p>
           <h1>Register your shop</h1>
-          <p className="muted">Registration fee: ₹300 via Razorpay.</p>
+          <p className="muted">Choose a plan, save your shop details, and complete payment securely through Razorpay.</p>
         </div>
 
         {params.error ? <p className="form-error">{params.error}</p> : null}
 
         <form action={registerOwnerAction} className="stack-form">
+          <div className="selection-box">
+            <h2>Select your plan</h2>
+            <p className="muted">Your account details are saved before payment, so you can return and continue later.</p>
+            <div className="plan-choice-grid">
+              {plans.map((plan) => (
+                <label key={plan.id} className="plan-choice-card">
+                  <input type="radio" name="planId" value={plan.id} required />
+                  <strong>{plan.name}</strong>
+                  <span>{plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"}</span>
+                  <b>₹{plan.pricePaise / 100}</b>
+                </label>
+              ))}
+            </div>
+            {plans.length === 0 ? <p className="form-error">No registration plans are currently available.</p> : null}
+          </div>
+
           <div className="form-grid">
             <label>
               Owner name
@@ -106,7 +126,7 @@ export default async function RegisterPage({
           </div>
 
           <button type="submit" className="primary-button">
-            Register and continue
+            Save details and continue to payment
           </button>
         </form>
 

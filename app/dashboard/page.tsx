@@ -9,6 +9,10 @@ export default async function DashboardPage() {
     orderBy: { createdAt: "desc" },
     include: {
       payments: { orderBy: { createdAt: "desc" } },
+      subscriptions: {
+        orderBy: { expiresAt: "desc" },
+        include: { plan: true },
+      },
       categories: { include: { mainCategory: true } },
       subcategories: { include: { subcategory: true } },
     },
@@ -42,6 +46,25 @@ export default async function DashboardPage() {
               <p className="muted">
                 Subcategories: {business.subcategories.map((item) => item.subcategory.name).join(", ") || "Not selected"}
               </p>
+              {business.subscriptions[0] ? (
+                <p className="muted">
+                  Plan: {business.subscriptions[0].plan.name} · Expires {business.subscriptions[0].expiresAt.toLocaleDateString("en-IN")}
+                </p>
+              ) : null}
+              {business.status === "PENDING_PAYMENT" ? (
+                <div className="pending-payment-box">
+                  <strong>Payment pending</strong>
+                  <span>Your saved registration will remain available until you complete payment.</span>
+                  {business.payments.find((payment) => payment.status !== "CAPTURED") ? (
+                    <Link
+                      href={`/register/payment/${business.payments.find((payment) => payment.status !== "CAPTURED")!.id}`}
+                      className="primary-button"
+                    >
+                      Continue payment
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mini-table">
                 {business.payments.map((payment) => (
                   <div key={payment.id}>
