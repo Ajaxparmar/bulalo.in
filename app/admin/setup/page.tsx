@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import { createFirstAdminAction } from "@/app/admin/setup/actions";
+import AdminActionConfirm from "@/app/admin/AdminActionConfirm";
 
 export default async function AdminSetupPage({
   searchParams,
@@ -18,7 +19,8 @@ export default async function AdminSetupPage({
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-page admin-setup-page">
+      <AdminActionConfirm />
       <section className="auth-panel">
         <div>
           <p className="eyebrow">First admin</p>

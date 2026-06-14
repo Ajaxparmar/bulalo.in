@@ -6,12 +6,28 @@ import {
   createCategoryAction,
   createPlanAction,
   createSubcategoryAction,
+  deleteBusinessAction,
+  deleteCategoryAction,
+  deletePaymentAction,
+  deletePlanAction,
+  deleteSubcategoryAction,
+  deleteSubscriptionAction,
+  deleteUserAction,
   saveRazorpaySettingsAction,
+  updateBusinessAction,
+  updateCategoryAction,
   updatePaymentStatusAction,
+  updatePlanAction,
+  updateSubscriptionAction,
+  updateSubcategoryAction,
+  updateUserAction,
 } from "@/app/admin/actions";
+import ConfirmSubmitButton from "@/app/admin/ConfirmSubmitButton";
+import AdminActionConfirm from "@/app/admin/AdminActionConfirm";
 import ImageUploadField from "@/app/admin/ImageUploadField";
 
 const paymentStatuses = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
+const businessStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
 const adminViews = ["overview", "businesses", "users", "payments", "plans", "categories", "settings"] as const;
 type AdminView = (typeof adminViews)[number];
 
@@ -116,6 +132,7 @@ export default async function AdminPage({
 
   return (
     <main className="admin-dashboard">
+      <AdminActionConfirm />
       <aside className="admin-sidebar">
         <Link href="/" className="admin-sidebar-brand">
           <span>BULA</span>LO.IN
@@ -256,20 +273,39 @@ export default async function AdminPage({
               </div>
               <strong>{businesses.length} total</strong>
             </div>
-            <div className="admin-business-list">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>City</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
               {businesses.map((business) => (
-                <div key={business.id}>
-                  <span className="admin-business-mark">{business.name.slice(0, 1)}</span>
-                  <div>
-                    <strong>{business.name}</strong>
-                    <small>{business.city} · Joined {business.createdAt.toLocaleDateString("en-IN")}</small>
-                  </div>
-                  <span className={`admin-status ${business.status.toLowerCase()}`}>
-                    {business.status.replaceAll("_", " ")}
-                  </span>
-                </div>
+                <tr key={business.id}>
+                  <td><input form={`business-${business.id}`} name="name" defaultValue={business.name} required /></td>
+                  <td><input form={`business-${business.id}`} name="city" defaultValue={business.city} required /></td>
+                  <td>
+                    <select form={`business-${business.id}`} name="status" defaultValue={business.status}>
+                      {businessStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}
+                    </select>
+                  </td>
+                  <td>{business.createdAt.toLocaleDateString("en-IN")}</td>
+                  <td>
+                    <div className="admin-row-actions">
+                      <form id={`business-${business.id}`} action={updateBusinessAction}>
+                        <input type="hidden" name="businessId" value={business.id} />
+                        <button type="submit">Save</button>
+                      </form>
+                      <form action={deleteBusinessAction}>
+                        <input type="hidden" name="businessId" value={business.id} />
+                        <ConfirmSubmitButton message={`Delete ${business.name} and all related records?`}>Delete</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
               ))}
-              {businesses.length === 0 ? <p className="empty-state">No businesses enrolled yet.</p> : null}
+              {businesses.length === 0 ? <tr><td colSpan={5}>No businesses enrolled yet.</td></tr> : null}
+                </tbody>
+              </table>
             </div>
           </section>
         ) : null}
@@ -358,6 +394,79 @@ export default async function AdminPage({
             </article>
           ))}
         </div>
+        </section>
+
+        <section className="admin-white-panel">
+          <h2>Manage categories</h2>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Sort</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {categories.map((category) => (
+                  <tr key={category.id}>
+                    <td><input form={`category-${category.id}`} name="name" defaultValue={category.name} required /></td>
+                    <td><input form={`category-${category.id}`} name="sortOrder" type="number" defaultValue={category.sortOrder} /></td>
+                    <td>
+                      <select form={`category-${category.id}`} name="isActive" defaultValue={String(category.isActive)}>
+                        <option value="true">Active</option><option value="false">Inactive</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div className="admin-row-actions">
+                        <form id={`category-${category.id}`} action={updateCategoryAction}>
+                          <input type="hidden" name="categoryId" value={category.id} />
+                          <button type="submit">Save</button>
+                        </form>
+                        <form action={deleteCategoryAction}>
+                          <input type="hidden" name="categoryId" value={category.id} />
+                          <ConfirmSubmitButton message={`Delete ${category.name} and all its subcategories?`}>Delete</ConfirmSubmitButton>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="admin-white-panel">
+          <h2>Manage subcategories</h2>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Parent category</th><th>Sort</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {categories.flatMap((category) => category.subcategories.map((subcategory) => (
+                  <tr key={subcategory.id}>
+                    <td><input form={`subcategory-${subcategory.id}`} name="name" defaultValue={subcategory.name} required /></td>
+                    <td>
+                      <select form={`subcategory-${subcategory.id}`} name="mainCategoryId" defaultValue={category.id}>
+                        {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                      </select>
+                    </td>
+                    <td><input form={`subcategory-${subcategory.id}`} name="sortOrder" type="number" defaultValue={subcategory.sortOrder} /></td>
+                    <td>
+                      <select form={`subcategory-${subcategory.id}`} name="isActive" defaultValue={String(subcategory.isActive)}>
+                        <option value="true">Active</option><option value="false">Inactive</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div className="admin-row-actions">
+                        <form id={`subcategory-${subcategory.id}`} action={updateSubcategoryAction}>
+                          <input type="hidden" name="subcategoryId" value={subcategory.id} />
+                          <button type="submit">Save</button>
+                        </form>
+                        <form action={deleteSubcategoryAction}>
+                          <input type="hidden" name="subcategoryId" value={subcategory.id} />
+                          <ConfirmSubmitButton message={`Delete subcategory ${subcategory.name}?`}>Delete</ConfirmSubmitButton>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                )))}
+              </tbody>
+            </table>
+          </div>
         </section>
           </>
         ) : null}
@@ -479,19 +588,35 @@ export default async function AdminPage({
               <div className="table-wrap">
                 <table>
                   <thead>
-                    <tr><th>Plan</th><th>Duration</th><th>Price</th><th>Status</th><th>Created</th></tr>
+                    <tr><th>Plan</th><th>Duration</th><th>Price</th><th>Status</th><th>Created</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
                     {plans.map((plan) => (
                       <tr key={plan.id}>
-                        <td>{plan.name}</td>
-                        <td>{plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"}</td>
-                        <td>{formatCurrency(plan.pricePaise)}</td>
-                        <td>{plan.isActive ? "Active" : "Inactive"}</td>
+                        <td><input form={`plan-${plan.id}`} name="name" defaultValue={plan.name} required /></td>
+                        <td><input form={`plan-${plan.id}`} name="durationMonths" type="number" min="1" defaultValue={plan.durationMonths} required /></td>
+                        <td><input form={`plan-${plan.id}`} name="priceRupees" type="number" min="0" step="0.01" defaultValue={plan.pricePaise / 100} required /></td>
+                        <td>
+                          <select form={`plan-${plan.id}`} name="isActive" defaultValue={String(plan.isActive)}>
+                            <option value="true">Active</option><option value="false">Inactive</option>
+                          </select>
+                        </td>
                         <td>{plan.createdAt.toLocaleDateString("en-IN")}</td>
+                        <td>
+                          <div className="admin-row-actions">
+                            <form id={`plan-${plan.id}`} action={updatePlanAction}>
+                              <input type="hidden" name="planId" value={plan.id} />
+                              <button type="submit">Save</button>
+                            </form>
+                            <form action={deletePlanAction}>
+                              <input type="hidden" name="planId" value={plan.id} />
+                              <ConfirmSubmitButton message={`Delete ${plan.name}? Plans with subscription history will be deactivated.`}>Delete</ConfirmSubmitButton>
+                            </form>
+                          </div>
+                        </td>
                       </tr>
                     ))}
-                    {plans.length === 0 ? <tr><td colSpan={5}>No plans created yet.</td></tr> : null}
+                    {plans.length === 0 ? <tr><td colSpan={6}>No plans created yet.</td></tr> : null}
                   </tbody>
                 </table>
               </div>
@@ -508,21 +633,37 @@ export default async function AdminPage({
               <div className="table-wrap">
                 <table>
                   <thead>
-                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expiry date</th><th>Status</th></tr>
+                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expiry date</th><th>Status</th><th>Action</th></tr>
                   </thead>
                   <tbody>
                     {[...upcomingSubscriptions, ...activeSubscriptions].map((subscription) => (
                       <tr key={subscription.id}>
                         <td>{subscription.business.name}</td>
                         <td>{subscription.business.owner.name || subscription.business.owner.phone}</td>
-                        <td>{subscription.plan.name}</td>
-                        <td>{subscription.startsAt.toLocaleDateString("en-IN")}</td>
-                        <td>{subscription.expiresAt.toLocaleDateString("en-IN")}</td>
+                        <td>
+                          <select form={`subscription-${subscription.id}`} name="planId" defaultValue={subscription.planId}>
+                            {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+                          </select>
+                        </td>
+                        <td><input form={`subscription-${subscription.id}`} name="startsAt" type="date" defaultValue={subscription.startsAt.toISOString().slice(0, 10)} /></td>
+                        <td><input form={`subscription-${subscription.id}`} name="expiresAt" type="date" defaultValue={subscription.expiresAt.toISOString().slice(0, 10)} /></td>
                         <td>{subscription.startsAt > now ? "Upcoming" : "Active"}</td>
+                        <td>
+                          <div className="admin-row-actions">
+                            <form id={`subscription-${subscription.id}`} action={updateSubscriptionAction}>
+                              <input type="hidden" name="subscriptionId" value={subscription.id} />
+                              <button type="submit">Save</button>
+                            </form>
+                            <form action={deleteSubscriptionAction}>
+                              <input type="hidden" name="subscriptionId" value={subscription.id} />
+                              <ConfirmSubmitButton message={`Delete ${subscription.plan.name} subscription for ${subscription.business.name}?`}>Delete</ConfirmSubmitButton>
+                            </form>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     {activeSubscriptions.length + upcomingSubscriptions.length === 0 ? (
-                      <tr><td colSpan={6}>No active or upcoming subscriptions.</td></tr>
+                      <tr><td colSpan={7}>No active or upcoming subscriptions.</td></tr>
                     ) : null}
                   </tbody>
                 </table>
@@ -540,20 +681,36 @@ export default async function AdminPage({
               <div className="table-wrap">
                 <table>
                   <thead>
-                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expired on</th><th>Status</th></tr>
+                    <tr><th>Business</th><th>Owner</th><th>Plan</th><th>Start date</th><th>Expired on</th><th>Status</th><th>Action</th></tr>
                   </thead>
                   <tbody>
                     {expiredSubscriptions.map((subscription) => (
                       <tr key={subscription.id}>
                         <td>{subscription.business.name}</td>
                         <td>{subscription.business.owner.name || subscription.business.owner.phone}</td>
-                        <td>{subscription.plan.name}</td>
-                        <td>{subscription.startsAt.toLocaleDateString("en-IN")}</td>
-                        <td>{subscription.expiresAt.toLocaleDateString("en-IN")}</td>
+                        <td>
+                          <select form={`subscription-${subscription.id}`} name="planId" defaultValue={subscription.planId}>
+                            {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+                          </select>
+                        </td>
+                        <td><input form={`subscription-${subscription.id}`} name="startsAt" type="date" defaultValue={subscription.startsAt.toISOString().slice(0, 10)} /></td>
+                        <td><input form={`subscription-${subscription.id}`} name="expiresAt" type="date" defaultValue={subscription.expiresAt.toISOString().slice(0, 10)} /></td>
                         <td><span className="admin-status expired">Expired</span></td>
+                        <td>
+                          <div className="admin-row-actions">
+                            <form id={`subscription-${subscription.id}`} action={updateSubscriptionAction}>
+                              <input type="hidden" name="subscriptionId" value={subscription.id} />
+                              <button type="submit">Save</button>
+                            </form>
+                            <form action={deleteSubscriptionAction}>
+                              <input type="hidden" name="subscriptionId" value={subscription.id} />
+                              <ConfirmSubmitButton message={`Delete expired subscription for ${subscription.business.name}?`}>Delete</ConfirmSubmitButton>
+                            </form>
+                          </div>
+                        </td>
                       </tr>
                     ))}
-                    {expiredSubscriptions.length === 0 ? <tr><td colSpan={6}>No expired subscriptions.</td></tr> : null}
+                    {expiredSubscriptions.length === 0 ? <tr><td colSpan={7}>No expired subscriptions.</td></tr> : null}
                   </tbody>
                 </table>
               </div>
@@ -570,19 +727,40 @@ export default async function AdminPage({
               <tr>
                 <th>Owner</th>
                 <th>Phone</th>
+                <th>Email</th>
+                <th>Status</th>
                 <th>Shops</th>
                 <th>Payments</th>
                 <th>Joined</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td>{user.name || "Owner"}</td>
-                  <td>{user.phone}</td>
+                  <td><input form={`user-${user.id}`} name="name" defaultValue={user.name || ""} /></td>
+                  <td><input form={`user-${user.id}`} name="phone" defaultValue={user.phone} required /></td>
+                  <td><input form={`user-${user.id}`} name="email" type="email" defaultValue={user.email || ""} /></td>
+                  <td>
+                    <select form={`user-${user.id}`} name="isActive" defaultValue={String(user.isActive)}>
+                      <option value="true">Active</option><option value="false">Inactive</option>
+                    </select>
+                  </td>
                   <td>{user.businesses.length}</td>
                   <td>{user.payments.length}</td>
                   <td>{user.createdAt.toLocaleDateString("en-IN")}</td>
+                  <td>
+                    <div className="admin-row-actions">
+                      <form id={`user-${user.id}`} action={updateUserAction}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <button type="submit">Save</button>
+                      </form>
+                      <form action={deleteUserAction}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <ConfirmSubmitButton message={`Delete ${user.name || user.phone}, all businesses, payments, and subscriptions?`}>Delete</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -620,6 +798,7 @@ export default async function AdminPage({
                 <th>Payment ID</th>
                 <th>Status</th>
                 <th>Update</th>
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -640,6 +819,17 @@ export default async function AdminPage({
                         ))}
                       </select>
                       <button type="submit">Save</button>
+                    </form>
+                  </td>
+                  <td>
+                    <form action={deletePaymentAction}>
+                      <input type="hidden" name="paymentId" value={payment.id} />
+                      <ConfirmSubmitButton
+                        message={`Delete payment ${payment.razorpayOrderId}? Captured payments cannot be deleted.`}
+                        className="admin-delete-button"
+                      >
+                        Delete
+                      </ConfirmSubmitButton>
                     </form>
                   </td>
                 </tr>

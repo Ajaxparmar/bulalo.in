@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { registerOwnerAction } from "@/app/register/actions";
 import { prisma } from "@/app/lib/prisma";
+import RegistrationSelections from "@/app/register/RegistrationSelections";
 
 export default async function RegisterPage({
   searchParams,
@@ -37,21 +38,7 @@ export default async function RegisterPage({
         {params.error ? <p className="form-error">{params.error}</p> : null}
 
         <form action={registerOwnerAction} className="stack-form">
-          <div className="selection-box">
-            <h2>Select your plan</h2>
-            <p className="muted">Your account details are saved before payment, so you can return and continue later.</p>
-            <div className="plan-choice-grid">
-              {plans.map((plan) => (
-                <label key={plan.id} className="plan-choice-card">
-                  <input type="radio" name="planId" value={plan.id} required />
-                  <strong>{plan.name}</strong>
-                  <span>{plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"}</span>
-                  <b>₹{plan.pricePaise / 100}</b>
-                </label>
-              ))}
-            </div>
-            {plans.length === 0 ? <p className="form-error">No registration plans are currently available.</p> : null}
-          </div>
+          <RegistrationSelections plans={plans} categories={categories} />
 
           <div className="form-grid">
             <label>
@@ -94,35 +81,6 @@ export default async function RegisterPage({
               Pincode
               <input name="pincode" required />
             </label>
-          </div>
-
-          <div className="selection-box">
-            <h2>Main categories</h2>
-            <p className="muted">Select 1 to 3.</p>
-            <div className="checkbox-grid">
-              {categories.map((category) => (
-                <label key={category.id} className="check-card">
-                  <input type="checkbox" name="categoryIds" value={category.id} />
-                  <span>{category.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="selection-box">
-            <h2>Subcategories</h2>
-            <p className="muted">Select 1 to 3 matching your main categories.</p>
-            <div className="checkbox-grid">
-              {categories.flatMap((category) =>
-                category.subcategories.map((subcategory) => (
-                  <label key={subcategory.id} className="check-card">
-                    <input type="checkbox" name="subcategoryIds" value={subcategory.id} />
-                    <span>{subcategory.name}</span>
-                    <small>{category.name}</small>
-                  </label>
-                )),
-              )}
-            </div>
           </div>
 
           <button type="submit" className="primary-button">

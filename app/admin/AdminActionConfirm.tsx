@@ -1,0 +1,34 @@
+"use client";
+
+import { useEffect } from "react";
+
+export default function AdminActionConfirm() {
+  useEffect(() => {
+    function confirmAdminAction(event: SubmitEvent) {
+      const form = event.target;
+
+      if (!(form instanceof HTMLFormElement) || !form.closest(".admin-dashboard, .admin-setup-page")) {
+        return;
+      }
+
+      const submitter = event.submitter;
+      const actionName = submitter instanceof HTMLElement
+        ? submitter.textContent?.trim() || "continue"
+        : "continue";
+      const customMessage = submitter instanceof HTMLElement
+        ? submitter.dataset.confirmMessage
+        : undefined;
+      const message = customMessage || `Are you sure you want to ${actionName.toLowerCase()}?`;
+
+      if (!window.confirm(message)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }
+
+    document.addEventListener("submit", confirmAdminAction, true);
+    return () => document.removeEventListener("submit", confirmAdminAction, true);
+  }, []);
+
+  return null;
+}

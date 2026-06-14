@@ -9,6 +9,10 @@ import Footer from '@/app/components/Footer';
 export const metadata: Metadata = {
   title: "Bulalo.in",
   description: "Find local businesses and services near you.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

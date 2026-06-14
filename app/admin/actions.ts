@@ -47,6 +47,10 @@ function uploadErrorRedirect(error: unknown): never {
   redirect(`/admin?view=categories&error=${encodeURIComponent(message)}`);
 }
 
+function adminRedirect(view: string, type: "success" | "error", message: string): never {
+  redirect(`/admin?view=${view}&${type}=${encodeURIComponent(message)}`);
+}
+
 export async function createCategoryAction(formData: FormData) {
   await requireAdmin();
 
@@ -233,4 +237,243 @@ export async function assignPlanAction(formData: FormData) {
 
   revalidatePath("/admin");
   redirect("/admin?view=plans&success=Plan%20assigned");
+}
+
+export async function updateUserAction(formData: FormData) {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") || "");
+  const name = String(formData.get("name") || "").trim() || null;
+  const phone = String(formData.get("phone") || "").trim();
+  const email = String(formData.get("email") || "").trim() || null;
+  const isActive = String(formData.get("isActive")) === "true";
+
+  if (!userId || !phone) {
+    adminRedirect("users", "error", "User phone number is required");
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { name, phone, email, isActive },
+    });
+  } catch {
+    adminRedirect("users", "error", "Unable to update user. The phone number may already be in use");
+  }
+
+  revalidatePath("/admin");
+  adminRedirect("users", "success", "User updated");
+}
+
+export async function deleteUserAction(formData: FormData) {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") || "");
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+
+  if (!userId || !user || user.role === "ADMIN") {
+    adminRedirect("users", "error", "This user cannot be deleted");
+  }
+
+  await prisma.user.delete({ where: { id: userId } });
+  revalidatePath("/admin");
+  adminRedirect("users", "success", "User and related businesses deleted");
+}
+
+export async function updateBusinessAction(formData: FormData) {
+  await requireAdmin();
+
+  const businessId = String(formData.get("businessId") || "");
+  const name = String(formData.get("name") || "").trim();
+  const city = String(formData.get("city") || "").trim();
+  const status = String(formData.get("status") || "");
+  const allowedStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
+
+  if (!businessId || !name || !city || !allowedStatuses.includes(status)) {
+    adminRedirect("businesses", "error", "Enter valid business details");
+  }
+
+  await prisma.business.update({
+    where: { id: businessId },
+    data: {
+      name,
+      city,
+      status: status as "PENDING_PAYMENT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "REJECTED",
+    },
+  });
+  revalidatePath("/admin");
+  adminRedirect("businesses", "success", "Business updated");
+}
+
+export async function deleteBusinessAction(formData: FormData) {
+  await requireAdmin();
+  const businessId = String(formData.get("businessId") || "");
+
+  if (!businessId) {
+    adminRedirect("businesses", "error", "Business not found");
+  }
+
+  await prisma.business.delete({ where: { id: businessId } });
+  revalidatePath("/admin");
+  adminRedirect("businesses", "success", "Business deleted");
+}
+
+export async function updatePlanAction(formData: FormData) {
+  await requireAdmin();
+
+  const planId = String(formData.get("planId") || "");
+  const name = String(formData.get("name") || "").trim();
+  const durationMonths = Number(formData.get("durationMonths"));
+  const priceRupees = Number(formData.get("priceRupees"));
+  const isActive = String(formData.get("isActive")) === "true";
+
+  if (!planId || !name || !Number.isInteger(durationMonths) || durationMonths < 1 || !Number.isFinite(priceRupees) || priceRupees < 0) {
+    adminRedirect("plans", "error", "Enter valid plan details");
+  }
+
+  await prisma.subscriptionPlan.update({
+    where: { id: planId },
+    data: { name, durationMonths, pricePaise: Math.round(priceRupees * 100), isActive },
+  });
+  revalidatePath("/admin");
+  adminRedirect("plans", "success", "Plan updated");
+}
+
+export async function deletePlanAction(formData: FormData) {
+  await requireAdmin();
+  const planId = String(formData.get("planId") || "");
+
+  if (!planId) {
+    adminRedirect("plans", "error", "Plan not found");
+  }
+
+  const relatedCount = await prisma.businessSubscription.count({ where: { planId } });
+
+  if (relatedCount > 0) {
+    await prisma.subscriptionPlan.update({ where: { id: planId }, data: { isActive: false } });
+    revalidatePath("/admin");
+    adminRedirect("plans", "success", "Plan has subscription history, so it was deactivated");
+  }
+
+  await prisma.subscriptionPlan.delete({ where: { id: planId } });
+  revalidatePath("/admin");
+  adminRedirect("plans", "success", "Plan deleted");
+}
+
+export async function deleteSubscriptionAction(formData: FormData) {
+  await requireAdmin();
+  const subscriptionId = String(formData.get("subscriptionId") || "");
+
+  if (!subscriptionId) {
+    adminRedirect("plans", "error", "Subscription not found");
+  }
+
+  await prisma.businessSubscription.delete({ where: { id: subscriptionId } });
+  revalidatePath("/admin");
+  adminRedirect("plans", "success", "Subscription deleted");
+}
+
+export async function updateSubscriptionAction(formData: FormData) {
+  await requireAdmin();
+
+  const subscriptionId = String(formData.get("subscriptionId") || "");
+  const planId = String(formData.get("planId") || "");
+  const startsAt = new Date(`${String(formData.get("startsAt") || "")}T00:00:00`);
+  const expiresAt = new Date(`${String(formData.get("expiresAt") || "")}T00:00:00`);
+
+  if (!subscriptionId || !planId || Number.isNaN(startsAt.getTime()) || Number.isNaN(expiresAt.getTime()) || expiresAt <= startsAt) {
+    adminRedirect("plans", "error", "Enter valid subscription dates");
+  }
+
+  await prisma.businessSubscription.update({
+    where: { id: subscriptionId },
+    data: { planId, startsAt, expiresAt },
+  });
+  revalidatePath("/admin");
+  adminRedirect("plans", "success", "Subscription updated");
+}
+
+export async function updateCategoryAction(formData: FormData) {
+  await requireAdmin();
+
+  const categoryId = String(formData.get("categoryId") || "");
+  const name = String(formData.get("name") || "").trim();
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+
+  if (!categoryId || !name) {
+    adminRedirect("categories", "error", "Category name is required");
+  }
+
+  await prisma.mainCategory.update({
+    where: { id: categoryId },
+    data: { name, sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0, isActive },
+  });
+  revalidatePath("/admin");
+  adminRedirect("categories", "success", "Category updated");
+}
+
+export async function deleteCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const categoryId = String(formData.get("categoryId") || "");
+
+  if (!categoryId) {
+    adminRedirect("categories", "error", "Category not found");
+  }
+
+  await prisma.mainCategory.delete({ where: { id: categoryId } });
+  revalidatePath("/admin");
+  adminRedirect("categories", "success", "Category and its subcategories deleted");
+}
+
+export async function updateSubcategoryAction(formData: FormData) {
+  await requireAdmin();
+
+  const subcategoryId = String(formData.get("subcategoryId") || "");
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const name = String(formData.get("name") || "").trim();
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+
+  if (!subcategoryId || !mainCategoryId || !name) {
+    adminRedirect("categories", "error", "Enter valid subcategory details");
+  }
+
+  await prisma.subcategory.update({
+    where: { id: subcategoryId },
+    data: { mainCategoryId, name, sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0, isActive },
+  });
+  revalidatePath("/admin");
+  adminRedirect("categories", "success", "Subcategory updated");
+}
+
+export async function deleteSubcategoryAction(formData: FormData) {
+  await requireAdmin();
+  const subcategoryId = String(formData.get("subcategoryId") || "");
+
+  if (!subcategoryId) {
+    adminRedirect("categories", "error", "Subcategory not found");
+  }
+
+  await prisma.subcategory.delete({ where: { id: subcategoryId } });
+  revalidatePath("/admin");
+  adminRedirect("categories", "success", "Subcategory deleted");
+}
+
+export async function deletePaymentAction(formData: FormData) {
+  await requireAdmin();
+  const paymentId = String(formData.get("paymentId") || "");
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId }, select: { status: true } });
+
+  if (!paymentId || !payment) {
+    adminRedirect("payments", "error", "Payment not found");
+  }
+
+  if (payment.status === "CAPTURED") {
+    adminRedirect("payments", "error", "Captured payments must be kept for financial history");
+  }
+
+  await prisma.payment.delete({ where: { id: paymentId } });
+  revalidatePath("/admin");
+  adminRedirect("payments", "success", "Payment deleted");
 }

@@ -30,7 +30,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-lg mb-4">About & Policies</h4>
             <div className="space-y-2 text-sm">
-              <Link href="/about/terms" className="hover:text-orange-400 block">Terms & Condition</Link>
+              <Link href="/about/terms" className="hover:text-orange-400 block">Terms & Conditions</Link>
               <Link href="/about/privacy" className="hover:text-orange-400 block">Privacy Policy</Link>
               <Link href="/about/refund" className="hover:text-orange-400 block">Refund Policy</Link>
             </div>
