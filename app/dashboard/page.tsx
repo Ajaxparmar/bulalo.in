@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const businesses = await prisma.business.findMany({

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { loginAction } from "@/app/login/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage({
   searchParams,
 }: {

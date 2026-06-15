@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/app/lib/prisma";
@@ -14,21 +14,6 @@ function getAuthSecret() {
 
 function sign(value: string) {
   return createHmac("sha256", getAuthSecret()).update(value).digest("base64url");
-}
-
-async function shouldUseSecureCookie() {
-  if (process.env.AUTH_COOKIE_SECURE === "true") {
-    return true;
-  }
-
-  if (process.env.AUTH_COOKIE_SECURE === "false") {
-    return false;
-  }
-
-  const requestHeaders = await headers();
-  const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
-
-  return forwardedProtocol === "https";
 }
 
 export function hashPassword(password: string) {
@@ -54,14 +39,14 @@ export async function createSession(userId: string) {
   const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
   const payload = Buffer.from(JSON.stringify({ userId, expiresAt })).toString("base64url");
   const cookieStore = await cookies();
-  const secure = await shouldUseSecureCookie();
 
   cookieStore.set(SESSION_COOKIE, `${payload}.${sign(payload)}`, {
     httpOnly: true,
     sameSite: "lax",
-    secure,
+    secure: process.env.AUTH_COOKIE_SECURE === "true",
     maxAge: SESSION_TTL_SECONDS,
     path: "/",
+    priority: "high",
   });
 }
 
