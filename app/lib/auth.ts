@@ -2,28 +2,15 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/app/lib/prisma";
 
-const SESSION_COOKIE = "abhi_session";
+const SESSION_COOKIE = "bulalo_session_v2";
+const LEGACY_SESSION_COOKIE = "abhi_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
-function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
-
-  if (secret) {
-    return secret;
-  }
-
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("AUTH_SECRET must be set and must remain the same for every production request");
-  }
-
-  return "development-only-auth-secret";
-}
-
-function sign(value: string) {
-  return createHmac("sha256", getAuthSecret()).update(value).digest("base64url");
+function hashSessionToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export function hashPassword(password: string) {
@@ -46,11 +33,19 @@ export function verifyPassword(password: string, storedHash: string) {
 }
 
 export async function createSession(userId: string) {
-  const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
-  const payload = Buffer.from(JSON.stringify({ userId, expiresAt })).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const token = randomBytes(32).toString("base64url");
   const cookieStore = await cookies();
 
-  cookieStore.set(SESSION_COOKIE, `${payload}.${sign(payload)}`, {
+  await prisma.session.create({
+    data: {
+      userId,
+      tokenHash: hashSessionToken(token),
+      expiresAt,
+    },
+  });
+
+  cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.AUTH_COOKIE_SECURE === "true",
@@ -58,11 +53,19 @@ export async function createSession(userId: string) {
     path: "/",
     priority: "high",
   });
+  cookieStore.delete(LEGACY_SESSION_COOKIE);
 }
 
 export async function clearSession() {
   const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+
+  if (token) {
+    await prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
+  }
+
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(LEGACY_SESSION_COOKIE);
 }
 
 export async function getCurrentUser() {
@@ -73,36 +76,30 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const [payload, signature] = token.split(".");
-
-  if (!payload || !signature || sign(payload) !== signature) {
-    return null;
-  }
-
-  try {
-    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-      userId: string;
-      expiresAt: number;
-    };
-
-    if (!session.userId || session.expiresAt < Date.now()) {
-      return null;
-    }
-
-    return prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        role: true,
-        isActive: true,
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashSessionToken(token) },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          role: true,
+          isActive: true,
+        },
       },
-    });
-  } catch {
+    },
+  });
+
+  if (!session || session.expiresAt <= new Date()) {
+    if (session) {
+      await prisma.session.delete({ where: { id: session.id } });
+    }
     return null;
   }
+
+  return session.user;
 }
 
 export async function requireUser() {
