@@ -9,7 +9,17 @@ const SESSION_COOKIE = "abhi_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 function getAuthSecret() {
-  return process.env.AUTH_SECRET || "change-this-auth-secret-in-production";
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
+
+  if (secret) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET must be set and must remain the same for every production request");
+  }
+
+  return "development-only-auth-secret";
 }
 
 function sign(value: string) {

@@ -16,6 +16,17 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Authentication environment
+
+Copy `.env.example` to `.env` and configure the values before building or starting the app.
+
+- `AUTH_SECRET` is required in production and must stay identical during build and runtime.
+- `AUTH_URL` should be the public application URL.
+- `AUTH_COOKIE_SECURE` must be `false` for local HTTP and `true` for HTTPS deployments.
+
+This project uses custom cookie authentication. `NEXTAUTH_URL` is not used. `NEXTAUTH_SECRET`
+or `JWT_SECRET` can be used as fallback names for `AUTH_SECRET`, but `AUTH_SECRET` is preferred.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
