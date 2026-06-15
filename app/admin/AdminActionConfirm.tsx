@@ -12,15 +12,11 @@ export default function AdminActionConfirm() {
       }
 
       const submitter = event.submitter;
-      const actionName = submitter instanceof HTMLElement
-        ? submitter.textContent?.trim() || "continue"
-        : "continue";
       const customMessage = submitter instanceof HTMLElement
         ? submitter.dataset.confirmMessage
         : undefined;
-      const message = customMessage || `Are you sure you want to ${actionName.toLowerCase()}?`;
 
-      if (!window.confirm(message)) {
+      if (customMessage && !window.confirm(customMessage)) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }

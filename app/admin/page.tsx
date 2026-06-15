@@ -277,7 +277,12 @@ export default async function AdminPage({
                     <div className="admin-row-actions">
                       <form id={`business-${business.id}`} action={updateBusinessAction}>
                         <input type="hidden" name="businessId" value={business.id} />
-                        <button type="submit">Save</button>
+                        <ConfirmSubmitButton
+                          className=""
+                          message={`Update ${business.name}?`}
+                        >
+                          Save
+                        </ConfirmSubmitButton>
                       </form>
                       <form action={deleteBusinessAction}>
                         <input type="hidden" name="businessId" value={business.id} />
@@ -362,7 +367,12 @@ export default async function AdminPage({
                       <div className="admin-row-actions">
                         <form id={`category-${category.id}`} action={updateCategoryAction}>
                           <input type="hidden" name="categoryId" value={category.id} />
-                          <button type="submit">Save</button>
+                          <ConfirmSubmitButton
+                            className=""
+                            message={`Update category ${category.name}?`}
+                          >
+                            Save
+                          </ConfirmSubmitButton>
                         </form>
                         <form action={deleteCategoryAction}>
                           <input type="hidden" name="categoryId" value={category.id} />
@@ -515,7 +525,12 @@ export default async function AdminPage({
                           <div className="admin-row-actions">
                             <form id={`plan-${plan.id}`} action={updatePlanAction}>
                               <input type="hidden" name="planId" value={plan.id} />
-                              <button type="submit">Save</button>
+                              <ConfirmSubmitButton
+                                className=""
+                                message={`Update plan ${plan.name}?`}
+                              >
+                                Save
+                              </ConfirmSubmitButton>
                             </form>
                             <form action={deletePlanAction}>
                               <input type="hidden" name="planId" value={plan.id} />
@@ -561,7 +576,12 @@ export default async function AdminPage({
                           <div className="admin-row-actions">
                             <form id={`subscription-${subscription.id}`} action={updateSubscriptionAction}>
                               <input type="hidden" name="subscriptionId" value={subscription.id} />
-                              <button type="submit">Save</button>
+                              <ConfirmSubmitButton
+                                className=""
+                                message={`Update ${subscription.plan.name} subscription for ${subscription.business.name}?`}
+                              >
+                                Save
+                              </ConfirmSubmitButton>
                             </form>
                             <form action={deleteSubscriptionAction}>
                               <input type="hidden" name="subscriptionId" value={subscription.id} />
@@ -609,7 +629,12 @@ export default async function AdminPage({
                           <div className="admin-row-actions">
                             <form id={`subscription-${subscription.id}`} action={updateSubscriptionAction}>
                               <input type="hidden" name="subscriptionId" value={subscription.id} />
-                              <button type="submit">Save</button>
+                              <ConfirmSubmitButton
+                                className=""
+                                message={`Update expired subscription for ${subscription.business.name}?`}
+                              >
+                                Save
+                              </ConfirmSubmitButton>
                             </form>
                             <form action={deleteSubscriptionAction}>
                               <input type="hidden" name="subscriptionId" value={subscription.id} />
@@ -662,7 +687,12 @@ export default async function AdminPage({
                     <div className="admin-row-actions">
                       <form id={`user-${user.id}`} action={updateUserAction}>
                         <input type="hidden" name="userId" value={user.id} />
-                        <button type="submit">Save</button>
+                        <ConfirmSubmitButton
+                          className=""
+                          message={`Update ${user.name || user.phone}?`}
+                        >
+                          Save
+                        </ConfirmSubmitButton>
                       </form>
                       <form action={deleteUserAction}>
                         <input type="hidden" name="userId" value={user.id} />
@@ -727,7 +757,12 @@ export default async function AdminPage({
                           <option key={status} value={status}>{status}</option>
                         ))}
                       </select>
-                      <button type="submit">Save</button>
+                      <ConfirmSubmitButton
+                        className=""
+                        message={`Update payment ${payment.razorpayOrderId}?`}
+                      >
+                        Save
+                      </ConfirmSubmitButton>
                     </form>
                   </td>
                   <td>
