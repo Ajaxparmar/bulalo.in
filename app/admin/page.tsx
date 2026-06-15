@@ -148,13 +148,13 @@ export default async function AdminPage({
         </div>
 
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard navigation">
-          <a href="/admin?view=overview" className={activeView === "overview" ? "active" : ""}><i className="fas fa-th-large" /> Overview</a>
-          <a href="/admin?view=businesses" className={activeView === "businesses" ? "active" : ""}><i className="fas fa-store" /> Businesses</a>
-          <a href="/admin?view=users" className={activeView === "users" ? "active" : ""}><i className="fas fa-users" /> Enrolled users</a>
-          <a href="/admin?view=payments" className={activeView === "payments" ? "active" : ""}><i className="fas fa-wallet" /> Payments</a>
-          <a href="/admin?view=plans" className={activeView === "plans" ? "active" : ""}><i className="fas fa-calendar-alt" /> Plans</a>
-          <a href="/admin?view=categories" className={activeView === "categories" ? "active" : ""}><i className="fas fa-layer-group" /> Categories</a>
-          <a href="/admin?view=settings" className={activeView === "settings" ? "active" : ""}><i className="fas fa-cog" /> Settings</a>
+          <Link href="/admin?view=overview" className={activeView === "overview" ? "active" : ""}><i className="fas fa-th-large" /> Overview</Link>
+          <Link href="/admin?view=businesses" className={activeView === "businesses" ? "active" : ""}><i className="fas fa-store" /> Businesses</Link>
+          <Link href="/admin?view=users" className={activeView === "users" ? "active" : ""}><i className="fas fa-users" /> Enrolled users</Link>
+          <Link href="/admin?view=payments" className={activeView === "payments" ? "active" : ""}><i className="fas fa-wallet" /> Payments</Link>
+          <Link href="/admin?view=plans" className={activeView === "plans" ? "active" : ""}><i className="fas fa-calendar-alt" /> Plans</Link>
+          <Link href="/admin?view=categories" className={activeView === "categories" ? "active" : ""}><i className="fas fa-layer-group" /> Categories</Link>
+          <Link href="/admin?view=settings" className={activeView === "settings" ? "active" : ""}><i className="fas fa-cog" /> Settings</Link>
         </nav>
 
         <Link href="/logout" className="admin-sidebar-logout">

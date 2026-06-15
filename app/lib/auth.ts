@@ -9,6 +9,18 @@ const SESSION_COOKIE = "bulalo_session_v2";
 const LEGACY_SESSION_COOKIE = "abhi_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
+function shouldUseSecureCookie() {
+  if (process.env.AUTH_COOKIE_SECURE === "true") {
+    return true;
+  }
+
+  if (process.env.AUTH_COOKIE_SECURE === "false") {
+    return false;
+  }
+
+  return process.env.AUTH_URL?.startsWith("https://") ?? false;
+}
+
 function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -48,7 +60,7 @@ export async function createSession(userId: string) {
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.AUTH_COOKIE_SECURE === "true",
+    secure: shouldUseSecureCookie(),
     maxAge: SESSION_TTL_SECONDS,
     path: "/",
     priority: "high",

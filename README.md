@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` and configure the values before building or starti
 
 - `AUTH_SECRET` is reserved for application secrets and should stay identical during build and runtime.
 - `AUTH_URL` should be the public application URL.
-- `AUTH_COOKIE_SECURE` must be `false` for local HTTP and `true` for HTTPS deployments.
+- `AUTH_COOKIE_SECURE` is optional. By default, secure cookies are enabled when `AUTH_URL` uses HTTPS.
 
 This project uses database-backed custom cookie sessions. `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, and
 `JWT_SECRET` are not used.
