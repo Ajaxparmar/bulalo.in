@@ -2013,12 +2013,14 @@ footer a:hover {
     margin: 10px 0;
 }
 
-.result-tags span {
+.result-tags span,
+.result-tags a {
     background: #f0f0f0;
     border-radius: 3px;
     color: #555;
     font-size: 9px;
     padding: 4px 6px;
+    text-decoration: none;
 }
 
 .result-tags .category-tag {

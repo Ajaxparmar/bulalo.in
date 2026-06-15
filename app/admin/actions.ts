@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { completeRegistrationPayment } from "@/app/lib/payments";
-import { slugify, uniqueSlug } from "@/app/lib/slug";
+import { uniqueSlug } from "@/app/lib/slug";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const imageExtensions: Record<string, string> = {
@@ -84,32 +84,6 @@ export async function createCategoryAction(formData: FormData) {
 
   revalidatePath("/admin");
   redirect("/admin?view=categories&success=Category%20added");
-}
-
-export async function createSubcategoryAction(formData: FormData) {
-  await requireAdmin();
-
-  const mainCategoryId = String(formData.get("mainCategoryId") || "");
-  const name = String(formData.get("name") || "").trim();
-  const description = String(formData.get("description") || "").trim() || null;
-  const sortOrder = Number(formData.get("sortOrder") || 0);
-
-  if (!mainCategoryId || !name) {
-    redirect("/admin?view=categories&error=Subcategory%20name%20and%20parent%20category%20are%20required");
-  }
-
-  await prisma.subcategory.create({
-    data: {
-      mainCategoryId,
-      name,
-      slug: `${slugify(name)}-${Date.now().toString(36)}`,
-      description,
-      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-    },
-  });
-
-  revalidatePath("/admin");
-  redirect("/admin?view=categories&success=Subcategory%20added");
 }
 
 export async function saveRazorpaySettingsAction(formData: FormData) {
@@ -423,41 +397,7 @@ export async function deleteCategoryAction(formData: FormData) {
 
   await prisma.mainCategory.delete({ where: { id: categoryId } });
   revalidatePath("/admin");
-  adminRedirect("categories", "success", "Category and its subcategories deleted");
-}
-
-export async function updateSubcategoryAction(formData: FormData) {
-  await requireAdmin();
-
-  const subcategoryId = String(formData.get("subcategoryId") || "");
-  const mainCategoryId = String(formData.get("mainCategoryId") || "");
-  const name = String(formData.get("name") || "").trim();
-  const sortOrder = Number(formData.get("sortOrder") || 0);
-  const isActive = String(formData.get("isActive")) === "true";
-
-  if (!subcategoryId || !mainCategoryId || !name) {
-    adminRedirect("categories", "error", "Enter valid subcategory details");
-  }
-
-  await prisma.subcategory.update({
-    where: { id: subcategoryId },
-    data: { mainCategoryId, name, sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0, isActive },
-  });
-  revalidatePath("/admin");
-  adminRedirect("categories", "success", "Subcategory updated");
-}
-
-export async function deleteSubcategoryAction(formData: FormData) {
-  await requireAdmin();
-  const subcategoryId = String(formData.get("subcategoryId") || "");
-
-  if (!subcategoryId) {
-    adminRedirect("categories", "error", "Subcategory not found");
-  }
-
-  await prisma.subcategory.delete({ where: { id: subcategoryId } });
-  revalidatePath("/admin");
-  adminRedirect("categories", "success", "Subcategory deleted");
+  adminRedirect("categories", "success", "Category deleted");
 }
 
 export async function deletePaymentAction(formData: FormData) {

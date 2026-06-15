@@ -13,12 +13,6 @@ export default async function RegisterPage({
     prisma.mainCategory.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      include: {
-        subcategories: {
-          where: { isActive: true },
-          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        },
-      },
     }),
     prisma.subscriptionPlan.findMany({
       where: { isActive: true },

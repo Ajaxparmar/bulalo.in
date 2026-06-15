@@ -5,12 +5,10 @@ import {
   assignPlanAction,
   createCategoryAction,
   createPlanAction,
-  createSubcategoryAction,
   deleteBusinessAction,
   deleteCategoryAction,
   deletePaymentAction,
   deletePlanAction,
-  deleteSubcategoryAction,
   deleteSubscriptionAction,
   deleteUserAction,
   saveRazorpaySettingsAction,
@@ -19,7 +17,6 @@ import {
   updatePaymentStatusAction,
   updatePlanAction,
   updateSubscriptionAction,
-  updateSubcategoryAction,
   updateUserAction,
 } from "@/app/admin/actions";
 import ConfirmSubmitButton from "@/app/admin/ConfirmSubmitButton";
@@ -66,11 +63,6 @@ export default async function AdminPage({
     searchParams,
     prisma.mainCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      include: {
-        subcategories: {
-          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        },
-      },
     }),
     prisma.payment.findMany({
       orderBy: { createdAt: "desc" },
@@ -124,10 +116,6 @@ export default async function AdminPage({
     ["PENDING_PAYMENT", "PENDING_REVIEW"].includes(business.status),
   ).length;
   const capturedPayments = payments.filter((payment) => payment.status === "CAPTURED").length;
-  const totalSubcategories = categories.reduce(
-    (total, category) => total + category.subcategories.length,
-    0,
-  );
   const activeView: AdminView = adminViews.includes(params.view as AdminView)
     ? params.view as AdminView
     : "overview";
@@ -213,12 +201,6 @@ export default async function AdminPage({
             <span>Total categories</span>
             <strong>{categories.length}</strong>
             <small>Main service categories</small>
-          </article>
-          <article className="admin-stat-card">
-            <div className="admin-stat-icon subcategory"><i className="fas fa-sitemap" /></div>
-            <span>Total subcategories</span>
-            <strong>{totalSubcategories}</strong>
-            <small>Services inside categories</small>
           </article>
           </section>
 
@@ -321,15 +303,8 @@ export default async function AdminPage({
             <strong>{categories.length}</strong>
             <small>Main service categories</small>
           </article>
-          <article className="admin-stat-card">
-            <div className="admin-stat-icon subcategory"><i className="fas fa-sitemap" /></div>
-            <span>Total subcategories</span>
-            <strong>{totalSubcategories}</strong>
-            <small>Services inside categories</small>
-          </article>
         </section>
-        <section className="admin-grid">
-          <div className="admin-white-panel">
+        <section className="admin-white-panel">
           <h2>Add main category</h2>
           <form action={createCategoryAction} className="stack-form compact">
             <label>
@@ -351,35 +326,6 @@ export default async function AdminPage({
             </label>
             <button type="submit" className="primary-button">Add category</button>
           </form>
-          </div>
-
-          <div className="admin-white-panel">
-          <h2>Add subcategory</h2>
-          <form action={createSubcategoryAction} className="stack-form compact">
-            <label>
-              Main category
-              <select name="mainCategoryId" required>
-                <option value="">Select category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Subcategory name
-              <input name="name" required />
-            </label>
-            <label>
-              Sort order
-              <input name="sortOrder" type="number" defaultValue={0} />
-            </label>
-            <label>
-              Description
-              <textarea name="description" rows={3} />
-            </label>
-            <button type="submit" className="primary-button">Add subcategory</button>
-          </form>
-          </div>
         </section>
 
         <section className="admin-white-panel">
@@ -390,8 +336,7 @@ export default async function AdminPage({
               <img src={category.imageUrl} alt={category.imageAlt || category.name} />
               <div>
                 <h3>{category.name}</h3>
-                <p>{category.subcategories.length} subcategories</p>
-                <p className="muted">{category.subcategories.map((item) => item.name).join(", ") || "No subcategories yet"}</p>
+                <p className="muted">{category.description || "Shop category"}</p>
               </div>
             </article>
           ))}
@@ -421,7 +366,7 @@ export default async function AdminPage({
                         </form>
                         <form action={deleteCategoryAction}>
                           <input type="hidden" name="categoryId" value={category.id} />
-                          <ConfirmSubmitButton message={`Delete ${category.name} and all its subcategories?`}>Delete</ConfirmSubmitButton>
+                          <ConfirmSubmitButton message={`Delete category ${category.name}?`}>Delete</ConfirmSubmitButton>
                         </form>
                       </div>
                     </td>
@@ -432,44 +377,6 @@ export default async function AdminPage({
           </div>
         </section>
 
-        <section className="admin-white-panel">
-          <h2>Manage subcategories</h2>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Name</th><th>Parent category</th><th>Sort</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>
-                {categories.flatMap((category) => category.subcategories.map((subcategory) => (
-                  <tr key={subcategory.id}>
-                    <td><input form={`subcategory-${subcategory.id}`} name="name" defaultValue={subcategory.name} required /></td>
-                    <td>
-                      <select form={`subcategory-${subcategory.id}`} name="mainCategoryId" defaultValue={category.id}>
-                        {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                      </select>
-                    </td>
-                    <td><input form={`subcategory-${subcategory.id}`} name="sortOrder" type="number" defaultValue={subcategory.sortOrder} /></td>
-                    <td>
-                      <select form={`subcategory-${subcategory.id}`} name="isActive" defaultValue={String(subcategory.isActive)}>
-                        <option value="true">Active</option><option value="false">Inactive</option>
-                      </select>
-                    </td>
-                    <td>
-                      <div className="admin-row-actions">
-                        <form id={`subcategory-${subcategory.id}`} action={updateSubcategoryAction}>
-                          <input type="hidden" name="subcategoryId" value={subcategory.id} />
-                          <button type="submit">Save</button>
-                        </form>
-                        <form action={deleteSubcategoryAction}>
-                          <input type="hidden" name="subcategoryId" value={subcategory.id} />
-                          <ConfirmSubmitButton message={`Delete subcategory ${subcategory.name}?`}>Delete</ConfirmSubmitButton>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                )))}
-              </tbody>
-            </table>
-          </div>
-        </section>
           </>
         ) : null}
 

@@ -96,7 +96,6 @@ model Business {
   owner         User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   payments      Payment[]
   categories    BusinessCategory[]
-  subcategories BusinessSubcategory[]
   subscriptions BusinessSubscription[]
 
   @@index([ownerId])
@@ -116,28 +115,9 @@ model MainCategory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  subcategories Subcategory[]
-  businesses    BusinessCategory[]
+  businesses BusinessCategory[]
 
   @@index([isActive, sortOrder])
-}
-
-model Subcategory {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  mainCategoryId String   @db.ObjectId
-  name           String
-  slug           String
-  description    String?
-  sortOrder      Int      @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  mainCategory MainCategory          @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
-  businesses   BusinessSubcategory[]
-
-  @@unique([mainCategoryId, slug])
-  @@index([mainCategoryId, isActive, sortOrder])
 }
 
 model BusinessCategory {
@@ -151,19 +131,6 @@ model BusinessCategory {
 
   @@unique([businessId, mainCategoryId])
   @@index([mainCategoryId])
-}
-
-model BusinessSubcategory {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  businessId    String   @db.ObjectId
-  subcategoryId String   @db.ObjectId
-  createdAt     DateTime @default(now())
-
-  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  subcategory Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
-
-  @@unique([businessId, subcategoryId])
-  @@index([subcategoryId])
 }
 
 model SubscriptionPlan {

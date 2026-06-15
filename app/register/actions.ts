@@ -5,10 +5,6 @@ import { createSession, hashPassword } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { uniqueSlug } from "@/app/lib/slug";
 
-function checkedValues(formData: FormData, key: string) {
-  return formData.getAll(key).map(String).filter(Boolean);
-}
-
 export async function registerOwnerAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
@@ -21,24 +17,15 @@ export async function registerOwnerAction(formData: FormData) {
   const state = String(formData.get("state") || "").trim();
   const pincode = String(formData.get("pincode") || "").trim();
   const planId = String(formData.get("planId") || "");
-  const categoryIds = checkedValues(formData, "categoryIds");
-  const subcategoryIds = checkedValues(formData, "subcategoryIds");
+  const categoryId = String(formData.get("categoryId") || "");
 
-  if (!name || !phone || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId) {
+  if (!name || !phone || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId || !categoryId) {
     redirect("/register?error=Please%20fill%20all%20required%20fields");
   }
 
-  if (categoryIds.length < 1 || categoryIds.length > 3 || subcategoryIds.length < 1 || subcategoryIds.length > 3) {
-    redirect("/register?error=Select%201%20to%203%20categories%20and%201%20to%203%20subcategories");
-  }
-
-  const [matchingSubcategories, plan] = await Promise.all([
-    prisma.subcategory.findMany({
-      where: {
-        id: { in: subcategoryIds },
-        mainCategoryId: { in: categoryIds },
-        isActive: true,
-      },
+  const [category, plan] = await Promise.all([
+    prisma.mainCategory.findFirst({
+      where: { id: categoryId, isActive: true },
       select: { id: true },
     }),
     prisma.subscriptionPlan.findFirst({
@@ -46,8 +33,8 @@ export async function registerOwnerAction(formData: FormData) {
     }),
   ]);
 
-  if (matchingSubcategories.length !== subcategoryIds.length || !plan) {
-    redirect("/register?error=Selected%20subcategories%20must%20belong%20to%20selected%20categories");
+  if (!category || !plan) {
+    redirect("/register?error=Select%20a%20valid%20category%20and%20plan");
   }
 
   const existingUser = await prisma.user.findUnique({ where: { phone } });
@@ -94,18 +81,9 @@ export async function registerOwnerAction(formData: FormData) {
     },
   });
 
-  await Promise.all([
-    ...categoryIds.map((mainCategoryId) =>
-      prisma.businessCategory.create({
-        data: { businessId: business.id, mainCategoryId },
-      }),
-    ),
-    ...subcategoryIds.map((subcategoryId) =>
-      prisma.businessSubcategory.create({
-        data: { businessId: business.id, subcategoryId },
-      }),
-    ),
-  ]);
+  await prisma.businessCategory.create({
+    data: { businessId: business.id, mainCategoryId: category.id },
+  });
 
   await createSession(user.id);
   redirect(`/register/payment/${payment.id}`);

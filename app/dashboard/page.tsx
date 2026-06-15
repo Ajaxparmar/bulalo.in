@@ -16,7 +16,6 @@ export default async function DashboardPage() {
         include: { plan: true },
       },
       categories: { include: { mainCategory: true } },
-      subcategories: { include: { subcategory: true } },
     },
   });
 
@@ -43,10 +42,7 @@ export default async function DashboardPage() {
               </div>
               <span className="status-pill">{business.status.replaceAll("_", " ")}</span>
               <p className="muted">
-                Categories: {business.categories.map((item) => item.mainCategory.name).join(", ") || "Not selected"}
-              </p>
-              <p className="muted">
-                Subcategories: {business.subcategories.map((item) => item.subcategory.name).join(", ") || "Not selected"}
+                Category: {business.categories[0]?.mainCategory.name || "Not selected"}
               </p>
               {business.subscriptions[0] ? (
                 <p className="muted">

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
 const menuLinks = [
@@ -22,6 +23,7 @@ const menuLinks = [
 ];
 
 export default function Header() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuToggleRef = useRef<HTMLButtonElement>(null);
 
@@ -48,7 +50,7 @@ export default function Header() {
     const query = String(formData.get('search') ?? '').trim();
 
     if (query) {
-      window.location.href = `/search-business?search=${encodeURIComponent(query)}`;
+      router.push(`/search-business?search=${encodeURIComponent(query)}`);
     }
   }
 
