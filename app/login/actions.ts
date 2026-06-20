@@ -2,13 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { createSession, verifyPassword } from "@/app/lib/auth";
+import { phoneLookupCandidates } from "@/app/lib/phone";
 import { prisma } from "@/app/lib/prisma";
 
 export async function loginAction(formData: FormData) {
   const phone = String(formData.get("phone") || "").trim();
   const password = String(formData.get("password") || "");
 
-  const user = await prisma.user.findUnique({ where: { phone } });
+  const user = await prisma.user.findFirst({
+    where: { phone: { in: phoneLookupCandidates(phone) } },
+  });
 
   if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) {
     redirect("/login?error=Invalid%20phone%20number%20or%20password");

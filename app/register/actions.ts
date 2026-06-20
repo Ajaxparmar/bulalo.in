@@ -2,12 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { createSession, hashPassword } from "@/app/lib/auth";
+import { isValidIndianPhone, normalizePhone, phoneLookupCandidates } from "@/app/lib/phone";
 import { prisma } from "@/app/lib/prisma";
 import { uniqueSlug } from "@/app/lib/slug";
 
 export async function registerOwnerAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
+  const phoneInput = String(formData.get("phone") || "").trim();
+  const phone = normalizePhone(phoneInput);
   const email = String(formData.get("email") || "").trim() || null;
   const password = String(formData.get("password") || "");
   const businessName = String(formData.get("businessName") || "").trim();
@@ -19,7 +21,7 @@ export async function registerOwnerAction(formData: FormData) {
   const planId = String(formData.get("planId") || "");
   const categoryId = String(formData.get("categoryId") || "");
 
-  if (!name || !phone || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId || !categoryId) {
+  if (!name || !isValidIndianPhone(phone) || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId || !categoryId) {
     redirect("/register?error=Please%20fill%20all%20required%20fields");
   }
 
@@ -37,7 +39,9 @@ export async function registerOwnerAction(formData: FormData) {
     redirect("/register?error=Select%20a%20valid%20category%20and%20plan");
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
+  const existingUser = await prisma.user.findFirst({
+    where: { phone: { in: phoneLookupCandidates(phoneInput) } },
+  });
 
   if (existingUser) {
     redirect("/login?error=This%20phone%20number%20is%20already%20saved.%20Login%20to%20continue%20payment");

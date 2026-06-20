@@ -5,6 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isValidIndianPhone, normalizePhone } from "@/app/lib/phone";
 import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { completeRegistrationPayment } from "@/app/lib/payments";
@@ -218,12 +219,12 @@ export async function updateUserAction(formData: FormData) {
 
   const userId = String(formData.get("userId") || "");
   const name = String(formData.get("name") || "").trim() || null;
-  const phone = String(formData.get("phone") || "").trim();
+  const phone = normalizePhone(String(formData.get("phone") || ""));
   const email = String(formData.get("email") || "").trim() || null;
   const isActive = String(formData.get("isActive")) === "true";
 
-  if (!userId || !phone) {
-    adminRedirect("users", "error", "User phone number is required");
+  if (!userId || !isValidIndianPhone(phone)) {
+    adminRedirect("users", "error", "A valid 10-digit Indian phone number is required");
   }
 
   try {

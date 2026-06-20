@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createSession, hashPassword } from "@/app/lib/auth";
+import { isValidIndianPhone, normalizePhone } from "@/app/lib/phone";
 import { prisma } from "@/app/lib/prisma";
 
 export async function createFirstAdminAction(formData: FormData) {
@@ -12,11 +13,11 @@ export async function createFirstAdminAction(formData: FormData) {
   }
 
   const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
+  const phone = normalizePhone(String(formData.get("phone") || ""));
   const email = String(formData.get("email") || "").trim() || null;
   const password = String(formData.get("password") || "");
 
-  if (!name || !phone || password.length < 8) {
+  if (!name || !isValidIndianPhone(phone) || password.length < 8) {
     redirect("/admin/setup?error=Name,%20phone,%20and%208%20character%20password%20are%20required");
   }
 
