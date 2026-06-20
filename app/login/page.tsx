@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { loginAction } from "@/app/login/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export default async function LoginPage({
 
         {params.error ? <p className="form-error">{params.error}</p> : null}
 
-        <form action={loginAction} className="stack-form">
+        <form action="/api/login" method="post" className="stack-form">
           <label>
             Phone number
             <input name="phone" type="tel" required placeholder="9876543210" />
