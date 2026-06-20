@@ -87,6 +87,7 @@ export default async function AdminPage({
         name: true,
         city: true,
         status: true,
+        isTopListing: true,
         createdAt: true,
       },
     }),
@@ -260,7 +261,7 @@ export default async function AdminPage({
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Name</th><th>City</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+                  <tr><th>Name</th><th>City</th><th>Status</th><th>Top listing</th><th>Joined</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
               {businesses.map((business) => (
@@ -270,6 +271,12 @@ export default async function AdminPage({
                   <td>
                     <select form={`business-${business.id}`} name="status" defaultValue={business.status}>
                       {businessStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <select form={`business-${business.id}`} name="isTopListing" defaultValue={String(business.isTopListing)}>
+                      <option value="true">Featured</option>
+                      <option value="false">Standard</option>
                     </select>
                   </td>
                   <td>{business.createdAt.toLocaleDateString("en-IN")}</td>
@@ -292,7 +299,7 @@ export default async function AdminPage({
                   </td>
                 </tr>
               ))}
-              {businesses.length === 0 ? <tr><td colSpan={5}>No businesses enrolled yet.</td></tr> : null}
+              {businesses.length === 0 ? <tr><td colSpan={6}>No businesses enrolled yet.</td></tr> : null}
                 </tbody>
               </table>
             </div>

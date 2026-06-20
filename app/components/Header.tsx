@@ -172,27 +172,27 @@ export default function Header() {
 
         <div className="menu-contact">
           <h3>Need help?</h3>
-          <a href="tel:+919812866228">
+          <Link href="tel:+919812866228">
             <i className="fas fa-phone-volume" />
             +91 98128 66228
-          </a>
-          <a href="mailto:help@bulalo.in">
+          </Link>
+          <Link href="mailto:help@bulalo.in">
             <i className="far fa-envelope" />
             help@bulalo.in
-          </a>
+          </Link>
         </div>
 
         <div className="menu-social">
           <span>Follow us</span>
-          <a href="https://www.facebook.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Facebook">
+          <Link href="https://www.facebook.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Facebook">
             <i className="fab fa-facebook-f" />
-          </a>
-          <a href="https://www.instagram.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Instagram">
+          </Link>
+          <Link href="https://www.instagram.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Instagram">
             <i className="fab fa-instagram" />
-          </a>
-          <a href="https://twitter.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Twitter">
+          </Link>
+          <Link href="https://twitter.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Twitter">
             <i className="fab fa-twitter" />
-          </a>
+          </Link>
         </div>
       </aside>
     </>

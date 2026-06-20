@@ -90,6 +90,7 @@ model Business {
   latitude    Float?
   longitude   Float?
   status      BusinessStatus @default(PENDING_PAYMENT)
+  isTopListing Boolean?       @default(false)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -100,6 +101,7 @@ model Business {
 
   @@index([ownerId])
   @@index([status])
+  @@index([isTopListing, status])
   @@index([city, status])
 }
 

@@ -116,8 +116,8 @@ export default function TermsPage() {
           <h2>10. Contact us</h2>
           <p>
             Questions about these terms can be sent to{" "}
-            <a href="mailto:help@bulalo.in">help@bulalo.in</a> or discussed by calling{" "}
-            <a href="tel:+919812866228">+91 98128 66228</a>.
+            <Link href="mailto:help@bulalo.in">help@bulalo.in</Link> or discussed by calling{" "}
+            <Link href="tel:+919812866228">+91 98128 66228</Link>.
           </p>
         </section>
 

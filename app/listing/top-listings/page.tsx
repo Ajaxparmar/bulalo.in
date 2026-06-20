@@ -1,29 +1,18 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 
-export default async function CategoryPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const category = await prisma.mainCategory.findUnique({
-    where: { slug },
-  });
+export const dynamic = "force-dynamic";
 
-  if (!category) {
-    notFound();
-  }
-
+export default async function TopListingsPage() {
   const businesses = await prisma.business.findMany({
     where: {
       status: "ACTIVE",
-      categories: {
-        some: { mainCategoryId: category.id },
-      },
+      isTopListing: true,
     },
-    orderBy: [{ isTopListing: "desc" }, { createdAt: "desc" }],
+    orderBy: { updatedAt: "desc" },
+    include: {
+      categories: { include: { mainCategory: true } },
+    },
   });
 
   return (
@@ -31,17 +20,19 @@ export default async function CategoryPage({
       <nav className="results-breadcrumb" aria-label="Breadcrumb">
         <Link href="/">Home</Link>
         <i className="fas fa-chevron-right" />
-        <span>Top Listing - {category.name}</span>
+        <span>Top Listings</span>
       </nav>
 
-      <p className="results-count">Showing {businesses.length} listing{businesses.length === 1 ? "" : "s"}</p>
+      <p className="results-count">
+        Showing {businesses.length} top listing{businesses.length === 1 ? "" : "s"}
+      </p>
       <h1 className="results-title">
-        your category result for - <span>{category.name}</span>
+        Featured shops on <span>Bulalo.in</span>
       </h1>
 
       <section className="results-grid">
         {businesses.map((business) => (
-          <article key={business.id} className="result-card">
+          <article key={business.id} className="result-card top-listing-card">
             {business.coverUrl || business.logoUrl ? (
               <img
                 className="result-card-image"
@@ -52,17 +43,19 @@ export default async function CategoryPage({
               <div className="result-card-placeholder">{business.name.slice(0, 1)}</div>
             )}
             <div className="result-card-body">
+              <p className="result-top-listing"><i className="fas fa-star" /> Top Listing</p>
               <h2>
                 {business.name} <span><i className="fas fa-check" /> Verified</span>
               </h2>
-              {business.isTopListing ? <p className="result-top-listing"><i className="fas fa-star" /> Top Listing</p> : null}
-              <p className="result-new-listing">New Listing</p>
               <p className="result-address">
                 {business.address}, {business.city}, {business.state} {business.pincode}
               </p>
-              <p className="result-open"><b>Open at:</b> 09:00 am</p>
               <div className="result-tags">
-                <span className="category-tag">{category.name}</span>
+                {business.categories.map((item) => (
+                  <Link key={item.mainCategory.id} href={`/category/${item.mainCategory.slug}`}>
+                    {item.mainCategory.name}
+                  </Link>
+                ))}
               </div>
               {business.description ? (
                 <p className="result-description">
@@ -76,7 +69,7 @@ export default async function CategoryPage({
           </article>
         ))}
         {businesses.length === 0 ? (
-          <p className="empty-state">No active shops found in this category.</p>
+          <p className="empty-state">No active shops have been marked as top listings yet.</p>
         ) : null}
       </section>
     </main>

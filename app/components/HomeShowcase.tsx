@@ -5,7 +5,6 @@ export default async function HomeShowcase() {
   const categories = await prisma.mainCategory.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    take: 24,
   });
 
   return (

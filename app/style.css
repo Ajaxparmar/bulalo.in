@@ -2002,6 +2002,22 @@ footer a:hover {
     color: #b2b2b2;
 }
 
+.result-top-listing {
+    color: #d48a00;
+    font-family: "PoppinsMedium", Arial, sans-serif;
+    font-size: 11px;
+    margin: 0 0 8px;
+}
+
+.result-top-listing i {
+    color: #f3a719;
+}
+
+.top-listing-card {
+    border-color: #f3c45f;
+    box-shadow: 0 4px 14px rgba(243, 167, 25, .16);
+}
+
 .result-open b {
     color: #f05543;
 }
@@ -2131,5 +2147,39 @@ footer a:hover {
     .result-card-placeholder {
         height: 100%;
         min-height: 190px;
+    }
+}
+.button-loading,
+button[data-button-loading="true"] {
+    cursor: wait !important;
+    pointer-events: none;
+    position: relative;
+}
+
+button[data-button-loading="true"] {
+    color: transparent !important;
+}
+
+button[data-button-loading="true"] > * {
+    visibility: hidden;
+}
+
+button[data-button-loading="true"]::after {
+    animation: button-spinner-rotate .7s linear infinite;
+    border: 2px solid rgba(249, 115, 22, .3);
+    border-radius: 50%;
+    border-top-color: #f97316;
+    content: "";
+    height: 16px;
+    left: 50%;
+    margin: -8px 0 0 -8px;
+    position: absolute;
+    top: 50%;
+    width: 16px;
+}
+
+@keyframes button-spinner-rotate {
+    to {
+        transform: rotate(360deg);
     }
 }

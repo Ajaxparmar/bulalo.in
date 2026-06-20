@@ -39,7 +39,7 @@ export default async function SearchBusinessPage({
               : []),
           ],
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ isTopListing: "desc" }, { createdAt: "desc" }],
         include: {
           categories: { include: { mainCategory: true } },
         },
@@ -77,6 +77,7 @@ export default async function SearchBusinessPage({
               <h2>
                 {business.name} <span><i className="fas fa-check" /> Verified</span>
               </h2>
+              {business.isTopListing ? <p className="result-top-listing"><i className="fas fa-star" /> Top Listing</p> : null}
               <p className="result-address">
                 {business.address}, {business.city}, {business.state} {business.pincode}
               </p>
@@ -92,9 +93,9 @@ export default async function SearchBusinessPage({
                   <i className="far fa-comment-dots" /> {business.description}
                 </p>
               ) : null}
-              <a href={`tel:${business.phone}`} className="result-call-button">
+              <Link href={`tel:${business.phone}`} className="result-call-button">
                 <i className="fas fa-phone" /> Show Number
-              </a>
+              </Link>
             </div>
           </article>
         ))}

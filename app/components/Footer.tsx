@@ -40,22 +40,22 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-lg mb-4">Follow Us</h4>
             <div className="flex gap-4">
-              <a href="https://facebook.com/bulalo.in" target="_blank" className="hover:text-orange-400">
+              <Link href="https://facebook.com/bulalo.in" target="_blank" className="hover:text-orange-400">
                 <i className="fab fa-facebook-f text-2xl"></i>
-              </a>
-              <a href="https://instagram.com/bulalo.in" target="_blank" className="hover:text-orange-400">
+              </Link>
+              <Link href="https://instagram.com/bulalo.in" target="_blank" className="hover:text-orange-400">
                 <i className="fab fa-instagram text-2xl"></i>
-              </a>
-              <a href="https://twitter.com/bulalo.in" target="_blank" className="hover:text-orange-400">
+              </Link>
+              <Link href="https://twitter.com/bulalo.in" target="_blank" className="hover:text-orange-400">
                 <i className="fab fa-twitter text-2xl"></i>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="border-t border-gray-800 mt-10 pt-6 text-center text-sm">
-          <p>Made with ❤️ by <a href="https://codescaler.com" className="text-orange-400">codescaler</a></p>
+          <p>Made with ❤️ by <Link href="https://codescaler.com" className="text-orange-400">codescaler</Link></p>
           <p className="mt-1">© 2026 Bulalo.in. All Rights Reserved.</p>
         </div>
       </div>

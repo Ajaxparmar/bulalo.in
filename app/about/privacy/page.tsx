@@ -121,8 +121,8 @@ export default function PrivacyPage() {
           <h2>11. Contact us</h2>
           <p>
             For privacy questions or requests, email{" "}
-            <a href="mailto:help@bulalo.in">help@bulalo.in</a> or call{" "}
-            <a href="tel:+919812866228">+91 98128 66228</a>.
+            <Link href="mailto:help@bulalo.in">help@bulalo.in</Link> or call{" "}
+            <Link href="tel:+919812866228">+91 98128 66228</Link>.
           </p>
         </section>
 

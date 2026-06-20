@@ -261,6 +261,7 @@ export async function updateBusinessAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const status = String(formData.get("status") || "");
+  const isTopListing = String(formData.get("isTopListing")) === "true";
   const allowedStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
 
   if (!businessId || !name || !city || !allowedStatuses.includes(status)) {
@@ -273,9 +274,11 @@ export async function updateBusinessAction(formData: FormData) {
       name,
       city,
       status: status as "PENDING_PAYMENT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "REJECTED",
+      isTopListing,
     },
   });
   revalidatePath("/admin");
+  revalidatePath("/listing/top-listings");
   adminRedirect("businesses", "success", "Business updated");
 }
 
