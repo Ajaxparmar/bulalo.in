@@ -44,14 +44,18 @@ export default function HomeTopBannerSlider({ slides }: { slides: HeaderSlide[] 
           tabIndex={index === activeSlide ? 0 : -1}
           style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl}")` } : undefined}
         >
-          {slide.imageUrl ? <span className="home-promo-image-shade" /> : null}
-          <div>
-            <span>{slide.eyebrow}</span>
-            <h2>{slide.title}</h2>
-            <p>{slide.detail}</p>
-          </div>
-          {!slide.imageUrl ? <i className="far fa-image" aria-hidden="true" /> : null}
-          {slide.imageUrl ? <span className="sr-only">{slide.imageAlt || slide.title}</span> : null}
+          {slide.imageUrl ? (
+            <span className="sr-only">{slide.imageAlt || slide.title}</span>
+          ) : (
+            <>
+              <div>
+                <span>{slide.eyebrow}</span>
+                <h2>{slide.title}</h2>
+                <p>{slide.detail}</p>
+              </div>
+              <i className="far fa-image" aria-hidden="true" />
+            </>
+          )}
         </Link>
       ))}
 

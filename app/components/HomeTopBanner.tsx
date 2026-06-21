@@ -44,6 +44,8 @@ export default async function HomeTopBanner() {
 
   return (
     <section className="home-top-banner" aria-label="Featured categories and promotion">
+      <HomeTopBannerSlider slides={slides} />
+
       <div className="home-top-category-grid">
         {topCards.length > 0
           ? topCards.map((card) => (
@@ -63,7 +65,6 @@ export default async function HomeTopBanner() {
             ))}
       </div>
 
-      <HomeTopBannerSlider slides={slides} />
     </section>
   );
 }

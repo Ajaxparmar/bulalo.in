@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BusinessListingCard from "@/app/components/BusinessListingCard";
 import { prisma } from "@/app/lib/prisma";
 
 export default async function CategoryPage({
@@ -24,6 +25,10 @@ export default async function CategoryPage({
       },
     },
     orderBy: [{ isTopListing: "desc" }, { createdAt: "desc" }],
+    include: {
+      categories: { include: { mainCategory: true } },
+      ratings: { select: { rating: true } },
+    },
   });
 
   return (
@@ -41,39 +46,7 @@ export default async function CategoryPage({
 
       <section className="results-grid">
         {businesses.map((business) => (
-          <article key={business.id} className="result-card">
-            {business.coverUrl || business.logoUrl ? (
-              <img
-                className="result-card-image"
-                src={business.coverUrl || business.logoUrl || ""}
-                alt={business.name}
-              />
-            ) : (
-              <div className="result-card-placeholder">{business.name.slice(0, 1)}</div>
-            )}
-            <div className="result-card-body">
-              <h2>
-                {business.name} <span><i className="fas fa-check" /> Verified</span>
-              </h2>
-              {business.isTopListing ? <p className="result-top-listing"><i className="fas fa-star" /> Top Listing</p> : null}
-              <p className="result-new-listing">New Listing</p>
-              <p className="result-address">
-                {business.address}, {business.city}, {business.state} {business.pincode}
-              </p>
-              <p className="result-open"><b>Open at:</b> 09:00 am</p>
-              <div className="result-tags">
-                <span className="category-tag">{category.name}</span>
-              </div>
-              {business.description ? (
-                <p className="result-description">
-                  <i className="far fa-comment-dots" /> {business.description}
-                </p>
-              ) : null}
-              <Link href={`tel:${business.phone}`} className="result-call-button">
-                <i className="fas fa-phone" /> Show Number
-              </Link>
-            </div>
-          </article>
+          <BusinessListingCard key={business.id} business={business} />
         ))}
         {businesses.length === 0 ? (
           <p className="empty-state">No active shops found in this category.</p>

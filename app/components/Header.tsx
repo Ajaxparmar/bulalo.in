@@ -63,9 +63,7 @@ export default function Header() {
     <>
       <header className="site-header">
         <Link href="/" className="site-logo" aria-label="Bulalo.in home">
-          <span className="site-logo-primary">BULA</span>
-          <span className="site-logo-accent">LO</span>
-          <span className="site-logo-domain">.IN</span>
+          <img src="/bulalo-logo.png" alt="Bulalo.in - Top Listing With Us" />
         </Link>
 
         <form className="site-search" onSubmit={handleSearch}>
@@ -73,7 +71,7 @@ export default function Header() {
             type="search"
             name="search"
             placeholder="Search for Property Dealer"
-            minLength={3}
+            minLength={2}
             required
           />
           <button type="submit" aria-label="Search">
@@ -184,10 +182,10 @@ export default function Header() {
 
         <div className="menu-social">
           <span>Follow us</span>
-          <Link href="https://www.facebook.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Facebook">
+          <Link href="https://www.facebook.com/share/1B77PC4cX4/" target="_blank" rel="noreferrer" aria-label="Facebook">
             <i className="fab fa-facebook-f" />
           </Link>
-          <Link href="https://www.instagram.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Instagram">
+          <Link href="https://www.instagram.com/bulalo.in_?igsh=Mm4yM2xwcGMwdWpx" target="_blank" rel="noreferrer" aria-label="Instagram">
             <i className="fab fa-instagram" />
           </Link>
           <Link href="https://twitter.com/bulalo.in" target="_blank" rel="noreferrer" aria-label="Twitter">

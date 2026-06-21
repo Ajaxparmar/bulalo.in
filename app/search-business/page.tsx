@@ -1,4 +1,6 @@
 import Link from "next/link";
+import BusinessListingCard from "@/app/components/BusinessListingCard";
+import { fuzzyScore } from "@/app/lib/fuzzy-search";
 import { prisma } from "@/app/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -11,40 +13,60 @@ export default async function SearchBusinessPage({
   const { search = "" } = await searchParams;
   const query = search.trim();
 
-  const matchingCategories = query
-    ? await prisma.mainCategory.findMany({
-        where: {
-          isActive: true,
-          name: { contains: query, mode: "insensitive" },
-        },
-        select: { id: true },
-      })
-    : [];
+  const [categories, activeBusinesses] = query.length >= 2
+    ? await Promise.all([
+        prisma.mainCategory.findMany({
+          where: { isActive: true },
+          select: { id: true, name: true, slug: true },
+        }),
+        prisma.business.findMany({
+          where: { status: "ACTIVE" },
+          orderBy: [{ isTopListing: "desc" }, { createdAt: "desc" }],
+          include: {
+            categories: { include: { mainCategory: true } },
+            ratings: { select: { rating: true } },
+          },
+        }),
+      ])
+    : [[], []];
 
-  const categoryIds = matchingCategories.map((category) => category.id);
-  const businesses = query
-    ? await prisma.business.findMany({
-        where: {
-          status: "ACTIVE",
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { description: { contains: query, mode: "insensitive" } },
-            { address: { contains: query, mode: "insensitive" } },
-            { city: { contains: query, mode: "insensitive" } },
-            { state: { contains: query, mode: "insensitive" } },
-            { pincode: { contains: query, mode: "insensitive" } },
-            { phone: { contains: query, mode: "insensitive" } },
-            ...(categoryIds.length > 0
-              ? [{ categories: { some: { mainCategoryId: { in: categoryIds } } } }]
-              : []),
-          ],
-        },
-        orderBy: [{ isTopListing: "desc" }, { createdAt: "desc" }],
-        include: {
-          categories: { include: { mainCategory: true } },
-        },
-      })
-    : [];
+  const categoryMatches = categories
+    .map((category) => ({
+      ...category,
+      score: fuzzyScore(query, category.name),
+    }))
+    .filter((category) => category.score > 0)
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+
+  const businesses = activeBusinesses
+    .map((business) => {
+      const categoryScore = Math.max(
+        0,
+        ...business.categories.map((item) => fuzzyScore(query, item.mainCategory.name)),
+      );
+      const nameScore = fuzzyScore(query, business.name);
+      const exactDetails = [
+        business.description,
+        business.address,
+        business.city,
+        business.state,
+        business.pincode,
+        business.phone,
+      ].some((value) => value?.toLowerCase().includes(query.toLowerCase()));
+
+      return {
+        business,
+        score: Math.max(nameScore, categoryScore, exactDetails ? 55 : 0),
+      };
+    })
+    .filter((result) => result.score > 0)
+    .sort((left, right) =>
+      right.score - left.score
+      || Number(Boolean(right.business.isTopListing)) - Number(Boolean(left.business.isTopListing))
+      || right.business.createdAt.getTime() - left.business.createdAt.getTime()
+    )
+    .slice(0, 100)
+    .map((result) => result.business);
 
   return (
     <main className="category-results-page">
@@ -61,48 +83,27 @@ export default async function SearchBusinessPage({
         Shop search results for - <span>{query || "Enter a search term"}</span>
       </h1>
 
+      {categoryMatches.length > 0 ? (
+        <nav className="search-category-matches" aria-label="Matching categories">
+          <span>Matching categories:</span>
+          {categoryMatches.slice(0, 8).map((category) => (
+            <Link key={category.id} href={`/category/${category.slug}`}>{category.name}</Link>
+          ))}
+        </nav>
+      ) : null}
+
       <section className="results-grid">
         {businesses.map((business) => (
-          <article key={business.id} className="result-card">
-            {business.coverUrl || business.logoUrl ? (
-              <img
-                className="result-card-image"
-                src={business.coverUrl || business.logoUrl || ""}
-                alt={business.name}
-              />
-            ) : (
-              <div className="result-card-placeholder">{business.name.slice(0, 1)}</div>
-            )}
-            <div className="result-card-body">
-              <h2>
-                {business.name} <span><i className="fas fa-check" /> Verified</span>
-              </h2>
-              {business.isTopListing ? <p className="result-top-listing"><i className="fas fa-star" /> Top Listing</p> : null}
-              <p className="result-address">
-                {business.address}, {business.city}, {business.state} {business.pincode}
-              </p>
-              <div className="result-tags">
-                {business.categories.map((item) => (
-                  <Link key={item.mainCategory.id} href={`/category/${item.mainCategory.slug}`}>
-                    {item.mainCategory.name}
-                  </Link>
-                ))}
-              </div>
-              {business.description ? (
-                <p className="result-description">
-                  <i className="far fa-comment-dots" /> {business.description}
-                </p>
-              ) : null}
-              <Link href={`tel:${business.phone}`} className="result-call-button">
-                <i className="fas fa-phone" /> Show Number
-              </Link>
-            </div>
-          </article>
+          <BusinessListingCard key={business.id} business={business} />
         ))}
-        {query && businesses.length === 0 ? (
-          <p className="empty-state">No active shops match your search.</p>
+        {query.length >= 2 && businesses.length === 0 ? (
+          <p className="empty-state">
+            {categoryMatches.length > 0
+              ? "This category currently has no active shop listings."
+              : "No active shops match your search."}
+          </p>
         ) : null}
-        {!query ? <p className="empty-state">Use the search box above to find a shop.</p> : null}
+        {query.length < 2 ? <p className="empty-state">Enter at least two characters to search.</p> : null}
       </section>
     </main>
   );

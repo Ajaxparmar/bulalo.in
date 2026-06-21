@@ -98,11 +98,26 @@ model Business {
   payments      Payment[]
   categories    BusinessCategory[]
   subscriptions BusinessSubscription[]
+  ratings       BusinessRating[]
 
   @@index([ownerId])
   @@index([status])
   @@index([isTopListing, status])
   @@index([city, status])
+}
+
+model BusinessRating {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId    String   @db.ObjectId
+  rating        Int
+  reviewerToken String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, reviewerToken])
+  @@index([businessId, createdAt])
 }
 
 model MainCategory {
