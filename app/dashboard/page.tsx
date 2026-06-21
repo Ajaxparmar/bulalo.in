@@ -26,9 +26,9 @@ export default async function DashboardPage() {
           <p className="eyebrow">Owner dashboard</p>
           <h1>Welcome{user.name ? `, ${user.name}` : ""}</h1>
         </div>
-        <Link href="/logout" className="secondary-button">
-          Logout
-        </Link>
+        <form action="/logout" method="post">
+          <button type="submit" className="secondary-button">Logout</button>
+        </form>
       </div>
 
       <section className="data-panel">

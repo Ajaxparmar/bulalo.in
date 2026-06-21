@@ -179,9 +179,11 @@ export default async function AdminPage({
           <Link href="/admin?view=settings" className={activeView === "settings" ? "active" : ""}><i className="fas fa-cog" /> Settings</Link>
         </nav>
 
-        <Link href="/logout" className="admin-sidebar-logout">
-          <i className="fas fa-sign-out-alt" /> Logout
-        </Link>
+        <form action="/logout" method="post" className="admin-sidebar-logout-form">
+          <button type="submit" className="admin-sidebar-logout">
+            <i className="fas fa-sign-out-alt" /> Logout
+          </button>
+        </form>
       </aside>
 
       <div className="admin-dashboard-content">
