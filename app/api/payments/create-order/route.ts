@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
-import { getRazorpayClient, getRazorpayCredentials } from "@/app/lib/razorpay";
+import { getRazorpayCredentials } from "@/app/lib/razorpay";
 
-type RazorpayError = {
-  statusCode?: number;
+type RazorpayOrder = {
+  id?: string;
+  amount?: number | string;
+  currency?: string;
+  receipt?: string | null;
   error?: { description?: string };
-  message?: string;
 };
 
 export async function POST(request: Request) {
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { keyId } = getRazorpayCredentials();
+    const { keyId, keySecret } = getRazorpayCredentials();
 
     if (payment.razorpayOrderId.startsWith("order_")) {
       return NextResponse.json({
@@ -62,17 +64,35 @@ export async function POST(request: Request) {
       });
     }
 
-    const razorpay = getRazorpayClient();
-    const order = await razorpay.orders.create({
-      amount: payment.amountPaise,
-      currency: payment.currency,
-      receipt: `reg_${payment.id}`.slice(0, 40),
-      notes: {
-        paymentId: payment.id,
-        businessId: payment.businessId || "",
-        planId: payment.planId || "",
+    const response = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        amount: payment.amountPaise,
+        currency: payment.currency,
+        receipt: `reg_${payment.id}`.slice(0, 40),
+        notes: {
+          paymentId: payment.id,
+          businessId: payment.businessId || "",
+          planId: payment.planId || "",
+        },
+      }),
     });
+    const order = await response.json() as RazorpayOrder;
+
+    if (!response.ok || !order.id) {
+      return NextResponse.json(
+        {
+          error: response.status === 401
+            ? "Razorpay authentication failed"
+            : order.error?.description || "Unable to create payment order",
+        },
+        { status: response.status === 401 ? 401 : 500 },
+      );
+    }
 
     await prisma.payment.update({
       where: { id: payment.id },
@@ -80,7 +100,7 @@ export async function POST(request: Request) {
         razorpayOrderId: order.id,
         razorpayReceipt: order.receipt || payment.razorpayReceipt,
         status: "CREATED",
-        rawResponse: JSON.parse(JSON.stringify(order)),
+        rawResponse: order,
       },
     });
 
@@ -88,8 +108,8 @@ export async function POST(request: Request) {
       keyId,
       order_id: order.id,
       orderId: order.id,
-      amount: Number(order.amount),
-      currency: order.currency,
+      amount: Number(order.amount || payment.amountPaise),
+      currency: order.currency || payment.currency,
       businessName: payment.business.name,
       ownerName: user.name,
       ownerEmail: user.email,
@@ -97,20 +117,15 @@ export async function POST(request: Request) {
       planName: payment.plan.name,
     });
   } catch (error) {
-    const razorpayError = error as RazorpayError;
-    const status = razorpayError.statusCode === 401 ? 401 : 500;
-
     console.error("Razorpay order creation failed", error);
 
     return NextResponse.json(
       {
-        error: status === 401
-          ? "Razorpay authentication failed"
-          : razorpayError.error?.description
-            || razorpayError.message
-            || "Unable to create payment order",
+        error: error instanceof Error
+          ? error.message
+          : "Unable to create payment order",
       },
-      { status },
+      { status: 500 },
     );
   }
 }
