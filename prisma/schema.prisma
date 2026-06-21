@@ -118,6 +118,10 @@ model MainCategory {
   updatedAt   DateTime @updatedAt
 
   businesses BusinessCategory[]
+  homepageCards HomepageCard[]
+  homepageTopCards HomepageTopCard[]
+  homepageBanners HomepageBanner[]
+  footerPopularEntries FooterPopularCategory[]
 
   @@index([isActive, sortOrder])
 }
@@ -211,4 +215,71 @@ model SiteSetting {
   isSecret  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model HomepageCard {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  imageUrl       String
+  imageAlt       String?
+  linkUrl        String
+  mainCategoryId String?  @db.ObjectId
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mainCategory MainCategory? @relation(fields: [mainCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, sortOrder])
+  @@index([mainCategoryId])
+}
+
+model HomepageTopCard {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  imageUrl       String
+  imageAlt       String?
+  mainCategoryId String   @db.ObjectId
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, sortOrder])
+  @@index([mainCategoryId])
+}
+
+model HomepageBanner {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  eyebrow        String?
+  title          String
+  detail         String?
+  imageUrl       String
+  imageAlt       String?
+  mainCategoryId String   @db.ObjectId
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, sortOrder])
+  @@index([mainCategoryId])
+}
+
+model FooterPopularCategory {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  mainCategoryId String   @unique @db.ObjectId
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mainCategory MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, sortOrder])
 }

@@ -18,11 +18,37 @@ export async function registerOwnerAction(formData: FormData) {
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim();
   const pincode = String(formData.get("pincode") || "").trim();
-  const planId = String(formData.get("planId") || "");
-  const categoryId = String(formData.get("categoryId") || "");
+  const planId = String(formData.get("planId") || "").trim();
+  const categoryId = String(formData.get("categoryId") || "").trim();
 
-  if (!name || !isValidIndianPhone(phone) || password.length < 6 || !businessName || !businessPhone || !address || !city || !state || !pincode || !planId || !categoryId) {
-    redirect("/register?error=Please%20fill%20all%20required%20fields");
+  const missingFields = [
+    !planId ? "plan" : "",
+    !categoryId ? "category" : "",
+    !name ? "owner name" : "",
+    !phoneInput ? "phone number" : "",
+    !password ? "password" : "",
+    !businessName ? "shop name" : "",
+    !businessPhone ? "shop phone" : "",
+    !address ? "address" : "",
+    !city ? "city" : "",
+    !state ? "state" : "",
+    !pincode ? "pincode" : "",
+  ].filter(Boolean);
+
+  if (missingFields.length > 0) {
+    redirect(`/register?error=${encodeURIComponent(`Please fill: ${missingFields.join(", ")}`)}`);
+  }
+
+  if (!isValidIndianPhone(phone)) {
+    redirect("/register?error=Enter%20a%20valid%2010-digit%20Indian%20mobile%20number");
+  }
+
+  if (password.length < 6) {
+    redirect("/register?error=Password%20must%20contain%20at%20least%206%20characters");
+  }
+
+  if (!/^\d{6}$/.test(pincode)) {
+    redirect("/register?error=Enter%20a%20valid%206-digit%20pincode");
   }
 
   const [category, plan] = await Promise.all([

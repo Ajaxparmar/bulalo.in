@@ -2,7 +2,17 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 
-export default function ImageUploadField({ label }: { label: string }) {
+export default function ImageUploadField({
+  label,
+  name = "image",
+  required = true,
+  currentImageUrl = "",
+}: {
+  label: string;
+  name?: string;
+  required?: boolean;
+  currentImageUrl?: string;
+}) {
   const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
@@ -29,16 +39,20 @@ export default function ImageUploadField({ label }: { label: string }) {
     <label>
       {label}
       <input
-        name="image"
+        name={name}
         type="file"
         accept="image/jpeg,image/png,image/gif,image/webp"
-        required
+        required={required}
         onChange={handleChange}
       />
       <small className="admin-field-help">JPG, PNG, GIF, or WebP. Maximum 5 MB.</small>
       {previewUrl ? (
         <span className="admin-image-preview">
           <img src={previewUrl} alt="Selected image preview" />
+        </span>
+      ) : currentImageUrl ? (
+        <span className="admin-image-preview">
+          <img src={currentImageUrl} alt="Current image" />
         </span>
       ) : null}
     </label>

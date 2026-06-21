@@ -3,48 +3,63 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/lib/auth";
 import { completeRegistrationPayment } from "@/app/lib/payments";
 import { prisma } from "@/app/lib/prisma";
+import { getRazorpayCredentials } from "@/app/lib/razorpay";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  const body = await request.json() as {
+
+  if (!user) {
+    return NextResponse.json({ error: "Please login to continue" }, { status: 401 });
+  }
+
+  let body: {
     paymentId?: string;
     razorpay_order_id?: string;
     razorpay_payment_id?: string;
     razorpay_signature?: string;
   };
 
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   if (
-    !user
-    || !body.paymentId
+    !body.paymentId
     || !body.razorpay_order_id
     || !body.razorpay_payment_id
     || !body.razorpay_signature
   ) {
-    return NextResponse.json({ error: "Invalid payment response" }, { status: 400 });
+    return NextResponse.json({ error: "Missing payment verification fields" }, { status: 400 });
   }
 
-  const [payment, secretSetting] = await Promise.all([
-    prisma.payment.findFirst({
-      where: { id: body.paymentId, userId: user.id },
-    }),
-    prisma.siteSetting.findUnique({ where: { key: "razorpay_key_secret" } }),
-  ]);
+  const payment = await prisma.payment.findFirst({
+    where: { id: body.paymentId, userId: user.id },
+  });
 
-  if (!payment || payment.razorpayOrderId !== body.razorpay_order_id || !secretSetting?.value) {
-    return NextResponse.json({ error: "Payment could not be verified" }, { status: 400 });
+  if (!payment || payment.razorpayOrderId !== body.razorpay_order_id) {
+    return NextResponse.json({ error: "Payment order does not match" }, { status: 400 });
   }
 
-  const expected = createHmac("sha256", secretSetting.value)
+  let keySecret: string;
+
+  try {
+    ({ keySecret } = getRazorpayCredentials());
+  } catch {
+    return NextResponse.json({ error: "Payment gateway is not configured" }, { status: 500 });
+  }
+
+  const expectedSignature = createHmac("sha256", keySecret)
     .update(`${body.razorpay_order_id}|${body.razorpay_payment_id}`)
     .digest("hex");
-  const received = Buffer.from(body.razorpay_signature);
-  const expectedBuffer = Buffer.from(expected);
+  const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+  const receivedBuffer = Buffer.from(body.razorpay_signature, "utf8");
 
-  if (received.length !== expectedBuffer.length || !timingSafeEqual(received, expectedBuffer)) {
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: "FAILED", razorpayFailureReason: "Signature verification failed" },
-    });
+  if (
+    expectedBuffer.length !== receivedBuffer.length
+    || !timingSafeEqual(expectedBuffer, receivedBuffer)
+  ) {
     return NextResponse.json({ error: "Payment signature is invalid" }, { status: 400 });
   }
 

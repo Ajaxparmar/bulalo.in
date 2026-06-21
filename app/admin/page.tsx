@@ -3,17 +3,30 @@ import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import {
   assignPlanAction,
+  addFooterPopularCategoryAction,
   createCategoryAction,
+  createHomepageBannerAction,
+  createHomepageCardAction,
+  createHomepageTopCardAction,
   createPlanAction,
   deleteBusinessAction,
   deleteCategoryAction,
+  deleteHomepageBannerAction,
+  deleteHomepageCardAction,
+  deleteHomepageTopCardAction,
+  deleteFooterPopularCategoryAction,
   deletePaymentAction,
   deletePlanAction,
   deleteSubscriptionAction,
   deleteUserAction,
   saveRazorpaySettingsAction,
+  saveContentPagesAction,
   updateBusinessAction,
   updateCategoryAction,
+  updateHomepageBannerAction,
+  updateHomepageCardAction,
+  updateHomepageTopCardAction,
+  updateFooterPopularCategoryAction,
   updatePaymentStatusAction,
   updatePlanAction,
   updateSubscriptionAction,
@@ -27,11 +40,13 @@ export const dynamic = "force-dynamic";
 
 const paymentStatuses = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
 const businessStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
-const adminViews = ["overview", "businesses", "users", "payments", "plans", "categories", "settings"] as const;
+const adminViews = ["overview", "homepage", "pages", "businesses", "users", "payments", "plans", "categories", "settings"] as const;
 type AdminView = (typeof adminViews)[number];
 
 const viewDetails: Record<AdminView, { title: string; description: string }> = {
   overview: { title: "Dashboard overview", description: "Here is what is happening with Bulalo.in today." },
+  homepage: { title: "Homepage content", description: "Manage the clickable cards shown at the bottom of the homepage." },
+  pages: { title: "Pages & footer", description: "Manage popular categories and About and Contact page content." },
   businesses: { title: "Businesses", description: "Review enrolled businesses and their current status." },
   users: { title: "Enrolled users", description: "View registered shop owners and their activity." },
   payments: { title: "Payments", description: "Track income and update payment statuses." },
@@ -59,7 +74,7 @@ export default async function AdminPage({
 }) {
   const admin = await requireAdmin();
 
-  const [params, categories, payments, users, settings, businesses, plans, subscriptions] = await Promise.all([
+  const [params, categories, payments, users, settings, businesses, plans, subscriptions, homepageCards, homepageTopCards, homepageBanners, footerPopularCategories] = await Promise.all([
     searchParams,
     prisma.mainCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -101,6 +116,22 @@ export default async function AdminPage({
         plan: true,
       },
     }),
+    prisma.homepageCard.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { mainCategory: true },
+    }),
+    prisma.homepageTopCard.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { mainCategory: true },
+    }),
+    prisma.homepageBanner.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { mainCategory: true },
+    }),
+    prisma.footerPopularCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { mainCategory: true },
+    }),
   ]);
 
   const now = new Date();
@@ -138,6 +169,8 @@ export default async function AdminPage({
 
         <nav className="admin-sidebar-nav" aria-label="Admin dashboard navigation">
           <Link href="/admin?view=overview" className={activeView === "overview" ? "active" : ""}><i className="fas fa-th-large" /> Overview</Link>
+          <Link href="/admin?view=homepage" className={activeView === "homepage" ? "active" : ""}><i className="fas fa-images" /> Homepage</Link>
+          <Link href="/admin?view=pages" className={activeView === "pages" ? "active" : ""}><i className="fas fa-file-alt" /> Pages & footer</Link>
           <Link href="/admin?view=businesses" className={activeView === "businesses" ? "active" : ""}><i className="fas fa-store" /> Businesses</Link>
           <Link href="/admin?view=users" className={activeView === "users" ? "active" : ""}><i className="fas fa-users" /> Enrolled users</Link>
           <Link href="/admin?view=payments" className={activeView === "payments" ? "active" : ""}><i className="fas fa-wallet" /> Payments</Link>
@@ -246,6 +279,302 @@ export default async function AdminPage({
             </div>
           </div>
           </section>
+          </>
+        ) : null}
+
+        {activeView === "pages" ? (
+          <>
+            <section className="admin-grid">
+              <div className="admin-white-panel">
+                <h2>Add popular footer category</h2>
+                <form action={addFooterPopularCategoryAction} className="stack-form compact">
+                  <label>
+                    Category
+                    <select name="mainCategoryId" required>
+                      <option value="">Select category</option>
+                      {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </select>
+                  </label>
+                  <label>Sort order<input name="sortOrder" type="number" defaultValue={0} /></label>
+                  <button type="submit" className="primary-button">Add popular category</button>
+                </form>
+              </div>
+
+              <div className="admin-white-panel">
+                <h2>Popular Categories</h2>
+                <div className="admin-popular-list">
+                  {footerPopularCategories.map((entry) => (
+                    <div key={entry.id}>
+                      <strong>{entry.mainCategory.name}</strong>
+                      <form action={updateFooterPopularCategoryAction} className="inline-form">
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <input name="sortOrder" type="number" defaultValue={entry.sortOrder} aria-label="Sort order" />
+                        <select name="isActive" defaultValue={String(entry.isActive)} aria-label="Status">
+                          <option value="true">Active</option><option value="false">Inactive</option>
+                        </select>
+                        <button type="submit">Save</button>
+                      </form>
+                      <form action={deleteFooterPopularCategoryAction}>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <ConfirmSubmitButton message={`Remove ${entry.mainCategory.name} from the footer?`}>Remove</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  ))}
+                  {footerPopularCategories.length === 0 ? <p className="empty-state">No popular footer categories selected.</p> : null}
+                </div>
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <h2>About and Contact pages</h2>
+              <form action={saveContentPagesAction} className="form-grid">
+                <label className="full">
+                  About page title
+                  <input name="about_title" defaultValue={settingValue(settings, "about_title", "Helping people discover trusted local businesses")} />
+                </label>
+                <label className="full">
+                  About page content
+                  <textarea name="about_body" rows={8} defaultValue={settingValue(settings, "about_body")} />
+                </label>
+                <label className="full">
+                  Contact page title
+                  <input name="contact_title" defaultValue={settingValue(settings, "contact_title", "How can we help?")} />
+                </label>
+                <label className="full">
+                  Contact page content
+                  <textarea name="contact_body" rows={4} defaultValue={settingValue(settings, "contact_body")} />
+                </label>
+                <label>Contact phone<input name="contact_phone" defaultValue={settingValue(settings, "contact_phone", "+91 98128 66228")} /></label>
+                <label>Contact email<input name="contact_email" type="email" defaultValue={settingValue(settings, "contact_email", "help@bulalo.in")} /></label>
+                <label className="full">Contact address<textarea name="contact_address" rows={3} defaultValue={settingValue(settings, "contact_address", "Jind, Haryana, India")} /></label>
+                <button type="submit" className="primary-button">Save pages</button>
+              </form>
+            </section>
+          </>
+        ) : null}
+
+        {activeView === "homepage" ? (
+          <>
+            <section className="admin-grid">
+              <div className="admin-white-panel">
+                <h2>Add top header card</h2>
+                <form action={createHomepageTopCardAction} className="stack-form compact">
+                  <label>Card title<input name="title" required /></label>
+                  <ImageUploadField label="Card image" />
+                  <label>Image alt text<input name="imageAlt" /></label>
+                  <label>
+                    Belongs to category
+                    <select name="mainCategoryId" required>
+                      <option value="">Select category</option>
+                      {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </select>
+                  </label>
+                  <label>Sort order<input name="sortOrder" type="number" defaultValue={0} /></label>
+                  <button type="submit" className="primary-button">Add top card</button>
+                </form>
+              </div>
+
+              <div className="admin-white-panel">
+                <h2>Add top slider image</h2>
+                <form action={createHomepageBannerAction} className="stack-form compact">
+                  <label>Small heading<input name="eyebrow" placeholder="Featured banner" /></label>
+                  <label>Title<input name="title" required /></label>
+                  <label>Supporting text<input name="detail" /></label>
+                  <ImageUploadField label="Slider image" />
+                  <label>Image alt text<input name="imageAlt" /></label>
+                  <label>
+                    Belongs to category
+                    <select name="mainCategoryId" required>
+                      <option value="">Select category</option>
+                      {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </select>
+                  </label>
+                  <label>Sort order<input name="sortOrder" type="number" defaultValue={0} /></label>
+                  <button type="submit" className="primary-button">Add slider image</button>
+                </form>
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div><span>Maximum three shown</span><h2>Top header cards</h2></div>
+                <strong>{homepageTopCards.length} total</strong>
+              </div>
+              <div className="admin-homepage-items">
+                {homepageTopCards.map((card) => (
+                  <article key={card.id} className="admin-homepage-item">
+                    <img src={card.imageUrl} alt={card.imageAlt || card.title} />
+                    <form id={`top-card-${card.id}`} action={updateHomepageTopCardAction} className="form-grid">
+                      <input type="hidden" name="cardId" value={card.id} />
+                      <label>Title<input name="title" defaultValue={card.title} required /></label>
+                      <label>
+                        Category
+                        <select name="mainCategoryId" defaultValue={card.mainCategoryId} required>
+                          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                        </select>
+                      </label>
+                      <label>Image alt<input name="imageAlt" defaultValue={card.imageAlt || ""} /></label>
+                      <label>Sort order<input name="sortOrder" type="number" defaultValue={card.sortOrder} /></label>
+                      <label>
+                        Status
+                        <select name="isActive" defaultValue={String(card.isActive)}>
+                          <option value="true">Active</option><option value="false">Inactive</option>
+                        </select>
+                      </label>
+                      <ImageUploadField label="Replace image" required={false} currentImageUrl={card.imageUrl} />
+                    </form>
+                    <div className="admin-row-actions">
+                      <ConfirmSubmitButton className="" message={`Update ${card.title}?`} form={`top-card-${card.id}`}>Save</ConfirmSubmitButton>
+                      <form action={deleteHomepageTopCardAction}>
+                        <input type="hidden" name="cardId" value={card.id} />
+                        <ConfirmSubmitButton message={`Delete ${card.title}?`}>Delete</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </article>
+                ))}
+                {homepageTopCards.length === 0 ? <p className="empty-state">The original three placeholder cards are currently shown.</p> : null}
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div><span>Original slider design</span><h2>Top slider images</h2></div>
+                <strong>{homepageBanners.length} total</strong>
+              </div>
+              <div className="admin-homepage-items">
+                {homepageBanners.map((banner) => (
+                  <article key={banner.id} className="admin-homepage-item">
+                    <img src={banner.imageUrl} alt={banner.imageAlt || banner.title} />
+                    <form id={`top-banner-${banner.id}`} action={updateHomepageBannerAction} className="form-grid">
+                      <input type="hidden" name="bannerId" value={banner.id} />
+                      <label>Small heading<input name="eyebrow" defaultValue={banner.eyebrow || ""} /></label>
+                      <label>Title<input name="title" defaultValue={banner.title} required /></label>
+                      <label>Supporting text<input name="detail" defaultValue={banner.detail || ""} /></label>
+                      <label>
+                        Category
+                        <select name="mainCategoryId" defaultValue={banner.mainCategoryId} required>
+                          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                        </select>
+                      </label>
+                      <label>Image alt<input name="imageAlt" defaultValue={banner.imageAlt || ""} /></label>
+                      <label>Sort order<input name="sortOrder" type="number" defaultValue={banner.sortOrder} /></label>
+                      <label>
+                        Status
+                        <select name="isActive" defaultValue={String(banner.isActive)}>
+                          <option value="true">Active</option><option value="false">Inactive</option>
+                        </select>
+                      </label>
+                      <ImageUploadField label="Replace image" required={false} currentImageUrl={banner.imageUrl} />
+                    </form>
+                    <div className="admin-row-actions">
+                      <ConfirmSubmitButton className="" message={`Update ${banner.title}?`} form={`top-banner-${banner.id}`}>Save</ConfirmSubmitButton>
+                      <form action={deleteHomepageBannerAction}>
+                        <input type="hidden" name="bannerId" value={banner.id} />
+                        <ConfirmSubmitButton message={`Delete ${banner.title}?`}>Delete</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </article>
+                ))}
+                {homepageBanners.length === 0 ? <p className="empty-state">The original placeholder slider is currently shown.</p> : null}
+              </div>
+            </section>
+
+            <section className="admin-white-panel">
+                <h2>Add bottom category card</h2>
+                <form action={createHomepageCardAction} className="stack-form compact">
+                  <label>
+                    Card title
+                    <input name="title" placeholder="Equipment" required />
+                  </label>
+                  <ImageUploadField label="Card image" />
+                  <label>
+                    Image alt text
+                    <input name="imageAlt" placeholder="Equipment services" />
+                  </label>
+                  <label>
+                    Belongs to category
+                    <select name="mainCategoryId" required>
+                      <option value="">Select category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                    <small className="admin-field-help">Clicking the card will open this category.</small>
+                  </label>
+                  <label>
+                    Sort order
+                    <input name="sortOrder" type="number" defaultValue={0} />
+                  </label>
+                  <button type="submit" className="primary-button">Add card</button>
+                </form>
+            </section>
+
+            <section className="admin-white-panel">
+              <div className="admin-section-heading">
+                <div>
+                  <span>Bottom full-width section</span>
+                  <h2>Category cards</h2>
+                </div>
+                <strong>{homepageCards.length} total</strong>
+              </div>
+              <div className="admin-homepage-items">
+                {homepageCards.map((card) => (
+                  <article key={card.id} className="admin-homepage-item">
+                    <img src={card.imageUrl} alt={card.imageAlt || card.title} />
+                    <form id={`homepage-card-${card.id}`} action={updateHomepageCardAction} className="form-grid">
+                      <input type="hidden" name="cardId" value={card.id} />
+                      <label>
+                        Title
+                        <input name="title" defaultValue={card.title} required />
+                      </label>
+                      <label>
+                        Belongs to category
+                        <select name="mainCategoryId" defaultValue={card.mainCategoryId || ""} required>
+                          <option value="">Select category</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>{category.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Image alt
+                        <input name="imageAlt" defaultValue={card.imageAlt || ""} />
+                      </label>
+                      <label>
+                        Sort order
+                        <input name="sortOrder" type="number" defaultValue={card.sortOrder} />
+                      </label>
+                      <label>
+                        Status
+                        <select name="isActive" defaultValue={String(card.isActive)}>
+                          <option value="true">Active</option>
+                          <option value="false">Inactive</option>
+                        </select>
+                      </label>
+                      <ImageUploadField
+                        label="Replace image"
+                        required={false}
+                        currentImageUrl={card.imageUrl}
+                      />
+                    </form>
+                    <div className="admin-row-actions">
+                      <ConfirmSubmitButton
+                        className=""
+                        message={`Update homepage card ${card.title}?`}
+                        form={`homepage-card-${card.id}`}
+                      >
+                        Save
+                      </ConfirmSubmitButton>
+                      <form action={deleteHomepageCardAction}>
+                        <input type="hidden" name="cardId" value={card.id} />
+                        <ConfirmSubmitButton message={`Delete homepage card ${card.title}?`}>Delete</ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </article>
+                ))}
+                {homepageCards.length === 0 ? <p className="empty-state">No custom cards yet. The homepage is showing its three placeholders.</p> : null}
+              </div>
+            </section>
           </>
         ) : null}
 

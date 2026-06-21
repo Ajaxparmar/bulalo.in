@@ -48,8 +48,21 @@ function uploadErrorRedirect(error: unknown): never {
   redirect(`/admin?view=categories&error=${encodeURIComponent(message)}`);
 }
 
+function homepageErrorRedirect(error: unknown): never {
+  const message = error instanceof Error ? error.message : "Homepage content could not be saved";
+  adminRedirect("homepage", "error", message);
+}
+
 function adminRedirect(view: string, type: "success" | "error", message: string): never {
   redirect(`/admin?view=${view}&${type}=${encodeURIComponent(message)}`);
+}
+
+async function optionalUploadedImage(entry: FormDataEntryValue | null, folder: string) {
+  if (!(entry instanceof File) || entry.size === 0) {
+    return null;
+  }
+
+  return saveUploadedImage(entry, folder);
 }
 
 export async function createCategoryAction(formData: FormData) {
@@ -420,4 +433,353 @@ export async function deletePaymentAction(formData: FormData) {
   await prisma.payment.delete({ where: { id: paymentId } });
   revalidatePath("/admin");
   adminRedirect("payments", "success", "Payment deleted");
+}
+
+export async function createHomepageCardAction(formData: FormData) {
+  await requireAdmin();
+
+  const title = String(formData.get("title") || "").trim();
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const category = await prisma.mainCategory.findUnique({
+    where: { id: mainCategoryId },
+    select: { id: true, slug: true },
+  });
+
+  if (!title || !category) {
+    adminRedirect("homepage", "error", "Enter a card title and select its category");
+  }
+
+  try {
+    const imageUrl = await saveUploadedImage(formData.get("image"), "homepage-cards");
+    await prisma.homepageCard.create({
+      data: {
+        title,
+        imageUrl,
+        imageAlt,
+        linkUrl: `/category/${category.slug}`,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Homepage card added");
+}
+
+export async function updateHomepageCardAction(formData: FormData) {
+  await requireAdmin();
+
+  const cardId = String(formData.get("cardId") || "");
+  const title = String(formData.get("title") || "").trim();
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+  const category = await prisma.mainCategory.findUnique({
+    where: { id: mainCategoryId },
+    select: { id: true, slug: true },
+  });
+
+  if (!cardId || !title || !category) {
+    adminRedirect("homepage", "error", "Enter valid homepage card details");
+  }
+
+  try {
+    const imageUrl = await optionalUploadedImage(formData.get("image"), "homepage-cards");
+    await prisma.homepageCard.update({
+      where: { id: cardId },
+      data: {
+        title,
+        imageAlt,
+        linkUrl: `/category/${category.slug}`,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+        isActive,
+        ...(imageUrl ? { imageUrl } : {}),
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Homepage card updated");
+}
+
+export async function deleteHomepageCardAction(formData: FormData) {
+  await requireAdmin();
+  const cardId = String(formData.get("cardId") || "");
+
+  if (!cardId) {
+    adminRedirect("homepage", "error", "Homepage card not found");
+  }
+
+  await prisma.homepageCard.delete({ where: { id: cardId } });
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Homepage card deleted");
+}
+
+export async function createHomepageTopCardAction(formData: FormData) {
+  await requireAdmin();
+
+  const title = String(formData.get("title") || "").trim();
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const category = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId }, select: { id: true } });
+
+  if (!title || !category) {
+    adminRedirect("homepage", "error", "Enter a top card title and select its category");
+  }
+
+  try {
+    const imageUrl = await saveUploadedImage(formData.get("image"), "homepage-top-cards");
+    await prisma.homepageTopCard.create({
+      data: {
+        title,
+        imageUrl,
+        imageAlt,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top header card added");
+}
+
+export async function updateHomepageTopCardAction(formData: FormData) {
+  await requireAdmin();
+
+  const cardId = String(formData.get("cardId") || "");
+  const title = String(formData.get("title") || "").trim();
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+  const category = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId }, select: { id: true } });
+
+  if (!cardId || !title || !category) {
+    adminRedirect("homepage", "error", "Enter valid top header card details");
+  }
+
+  try {
+    const imageUrl = await optionalUploadedImage(formData.get("image"), "homepage-top-cards");
+    await prisma.homepageTopCard.update({
+      where: { id: cardId },
+      data: {
+        title,
+        imageAlt,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+        isActive,
+        ...(imageUrl ? { imageUrl } : {}),
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top header card updated");
+}
+
+export async function deleteHomepageTopCardAction(formData: FormData) {
+  await requireAdmin();
+  const cardId = String(formData.get("cardId") || "");
+
+  if (!cardId) {
+    adminRedirect("homepage", "error", "Top header card not found");
+  }
+
+  await prisma.homepageTopCard.delete({ where: { id: cardId } });
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top header card deleted");
+}
+
+export async function createHomepageBannerAction(formData: FormData) {
+  await requireAdmin();
+
+  const eyebrow = String(formData.get("eyebrow") || "").trim() || null;
+  const title = String(formData.get("title") || "").trim();
+  const detail = String(formData.get("detail") || "").trim() || null;
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const category = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId }, select: { id: true } });
+
+  if (!title || !category) {
+    adminRedirect("homepage", "error", "Enter a slider title and select its category");
+  }
+
+  try {
+    const imageUrl = await saveUploadedImage(formData.get("image"), "homepage-banners");
+    await prisma.homepageBanner.create({
+      data: {
+        eyebrow,
+        title,
+        detail,
+        imageUrl,
+        imageAlt,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top slider image added");
+}
+
+export async function updateHomepageBannerAction(formData: FormData) {
+  await requireAdmin();
+
+  const bannerId = String(formData.get("bannerId") || "");
+  const eyebrow = String(formData.get("eyebrow") || "").trim() || null;
+  const title = String(formData.get("title") || "").trim();
+  const detail = String(formData.get("detail") || "").trim() || null;
+  const imageAlt = String(formData.get("imageAlt") || "").trim() || null;
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+  const category = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId }, select: { id: true } });
+
+  if (!bannerId || !title || !category) {
+    adminRedirect("homepage", "error", "Enter valid top slider details");
+  }
+
+  try {
+    const imageUrl = await optionalUploadedImage(formData.get("image"), "homepage-banners");
+    await prisma.homepageBanner.update({
+      where: { id: bannerId },
+      data: {
+        eyebrow,
+        title,
+        detail,
+        imageAlt,
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+        isActive,
+        ...(imageUrl ? { imageUrl } : {}),
+      },
+    });
+  } catch (error) {
+    homepageErrorRedirect(error);
+  }
+
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top slider image updated");
+}
+
+export async function deleteHomepageBannerAction(formData: FormData) {
+  await requireAdmin();
+  const bannerId = String(formData.get("bannerId") || "");
+
+  if (!bannerId) {
+    adminRedirect("homepage", "error", "Top slider image not found");
+  }
+
+  await prisma.homepageBanner.delete({ where: { id: bannerId } });
+  revalidatePath("/");
+  adminRedirect("homepage", "success", "Top slider image deleted");
+}
+
+export async function addFooterPopularCategoryAction(formData: FormData) {
+  await requireAdmin();
+
+  const mainCategoryId = String(formData.get("mainCategoryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const category = await prisma.mainCategory.findUnique({ where: { id: mainCategoryId }, select: { id: true } });
+
+  if (!category) {
+    adminRedirect("pages", "error", "Select a valid popular category");
+  }
+
+  try {
+    await prisma.footerPopularCategory.create({
+      data: {
+        mainCategoryId: category.id,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      },
+    });
+  } catch {
+    adminRedirect("pages", "error", "This category is already in the footer");
+  }
+
+  revalidatePath("/");
+  adminRedirect("pages", "success", "Popular category added");
+}
+
+export async function updateFooterPopularCategoryAction(formData: FormData) {
+  await requireAdmin();
+
+  const entryId = String(formData.get("entryId") || "");
+  const sortOrder = Number(formData.get("sortOrder") || 0);
+  const isActive = String(formData.get("isActive")) === "true";
+
+  if (!entryId) {
+    adminRedirect("pages", "error", "Popular category not found");
+  }
+
+  await prisma.footerPopularCategory.update({
+    where: { id: entryId },
+    data: {
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      isActive,
+    },
+  });
+
+  revalidatePath("/");
+  adminRedirect("pages", "success", "Popular category updated");
+}
+
+export async function deleteFooterPopularCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const entryId = String(formData.get("entryId") || "");
+
+  if (!entryId) {
+    adminRedirect("pages", "error", "Popular category not found");
+  }
+
+  await prisma.footerPopularCategory.delete({ where: { id: entryId } });
+  revalidatePath("/");
+  adminRedirect("pages", "success", "Popular category removed");
+}
+
+export async function saveContentPagesAction(formData: FormData) {
+  await requireAdmin();
+
+  const values = [
+    ["about_title", "About page title", String(formData.get("about_title") || "").trim(), false],
+    ["about_body", "About page content", String(formData.get("about_body") || "").trim(), false],
+    ["contact_title", "Contact page title", String(formData.get("contact_title") || "").trim(), false],
+    ["contact_body", "Contact page content", String(formData.get("contact_body") || "").trim(), false],
+    ["contact_phone", "Contact phone", String(formData.get("contact_phone") || "").trim(), false],
+    ["contact_email", "Contact email", String(formData.get("contact_email") || "").trim(), false],
+    ["contact_address", "Contact address", String(formData.get("contact_address") || "").trim(), false],
+  ] as const;
+
+  await Promise.all(
+    values.map(([key, label, value, isSecret]) =>
+      prisma.siteSetting.upsert({
+        where: { key },
+        update: { value, label, isSecret },
+        create: { key, value, label, isSecret },
+      }),
+    ),
+  );
+
+  revalidatePath("/about");
+  revalidatePath("/contact-us");
+  adminRedirect("pages", "success", "About and contact pages saved");
 }

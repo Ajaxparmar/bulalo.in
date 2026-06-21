@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { registerOwnerAction } from "@/app/register/actions";
 import { prisma } from "@/app/lib/prisma";
-import RegistrationSelections from "@/app/register/RegistrationSelections";
+import RegisterShopForm from "@/app/register/RegisterShopForm";
 
 export default async function RegisterPage({
   searchParams,
@@ -31,56 +30,7 @@ export default async function RegisterPage({
 
         {params.error ? <p className="form-error">{params.error}</p> : null}
 
-        <form action={registerOwnerAction} className="stack-form">
-          <RegistrationSelections plans={plans} categories={categories} />
-
-          <div className="form-grid">
-            <label>
-              Owner name
-              <input name="name" required />
-            </label>
-            <label>
-              Phone number
-              <input name="phone" type="tel" required />
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" required minLength={6} />
-            </label>
-            <label>
-              Shop name
-              <input name="businessName" required />
-            </label>
-            <label>
-              Shop phone
-              <input name="businessPhone" type="tel" required />
-            </label>
-            <label className="full">
-              Address
-              <textarea name="address" required rows={3} />
-            </label>
-            <label>
-              City
-              <input name="city" required />
-            </label>
-            <label>
-              State
-              <input name="state" required />
-            </label>
-            <label>
-              Pincode
-              <input name="pincode" required />
-            </label>
-          </div>
-
-          <button type="submit" className="primary-button">
-            Save details and continue to payment
-          </button>
-        </form>
+        <RegisterShopForm plans={plans} categories={categories} />
 
         <p className="muted-link">
           Already registered? <Link href="/login">Login</Link>
