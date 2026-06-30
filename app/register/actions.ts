@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { Prisma } from "@/app/generated/prisma/client";
 import { createSession, hashPassword } from "@/app/lib/auth";
 import { isValidIndianPhone, normalizePhone, phoneLookupCandidates } from "@/app/lib/phone";
 import { prisma } from "@/app/lib/prisma";
@@ -20,6 +21,7 @@ export async function registerOwnerAction(formData: FormData) {
   const pincode = String(formData.get("pincode") || "").trim();
   const planId = String(formData.get("planId") || "").trim();
   const categoryId = String(formData.get("categoryId") || "").trim();
+  const businessPhoneNormalized = normalizePhone(businessPhone);
 
   const missingFields = [
     !planId ? "plan" : "",
@@ -41,6 +43,10 @@ export async function registerOwnerAction(formData: FormData) {
 
   if (!isValidIndianPhone(phone)) {
     redirect("/register?error=Enter%20a%20valid%2010-digit%20Indian%20mobile%20number");
+  }
+
+  if (!isValidIndianPhone(businessPhoneNormalized)) {
+    redirect("/register?error=Enter%20a%20valid%2010-digit%20shop%20phone%20number");
   }
 
   if (password.length < 6) {
@@ -73,48 +79,68 @@ export async function registerOwnerAction(formData: FormData) {
     redirect("/login?error=This%20phone%20number%20is%20already%20saved.%20Login%20to%20continue%20payment");
   }
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      phone,
-      email,
-      passwordHash: hashPassword(password),
-      role: "SHOP_OWNER",
-    },
-  });
+  let userId: string;
+  let paymentId: string;
 
-  const business = await prisma.business.create({
-    data: {
-      ownerId: user.id,
-      name: businessName,
-      slug: uniqueSlug(businessName),
-      phone: businessPhone,
-      email,
-      address,
-      city,
-      state,
-      pincode,
-      status: "PENDING_PAYMENT",
-    },
-  });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          name,
+          phone,
+          email,
+          passwordHash: hashPassword(password),
+          role: "SHOP_OWNER",
+        },
+      });
 
-  const payment = await prisma.payment.create({
-    data: {
-      userId: user.id,
-      businessId: business.id,
-      planId: plan.id,
-      amountPaise: plan.pricePaise,
-      currency: "INR",
-      status: "CREATED",
-      razorpayOrderId: `pending_${business.id}_${Date.now()}`,
-      razorpayReceipt: `REG-${business.id}`,
-    },
-  });
+      const createdBusiness = await tx.business.create({
+        data: {
+          ownerId: createdUser.id,
+          name: businessName,
+          slug: uniqueSlug(businessName),
+          phone: businessPhoneNormalized,
+          email,
+          address,
+          city,
+          state,
+          pincode,
+          status: "PENDING_PAYMENT",
+        },
+      });
 
-  await prisma.businessCategory.create({
-    data: { businessId: business.id, mainCategoryId: category.id },
-  });
+      const createdPayment = await tx.payment.create({
+        data: {
+          userId: createdUser.id,
+          businessId: createdBusiness.id,
+          planId: plan.id,
+          amountPaise: plan.pricePaise,
+          currency: "INR",
+          status: "CREATED",
+          razorpayOrderId: `pending_${createdBusiness.id}_${Date.now()}`,
+          razorpayReceipt: `REG-${createdBusiness.id}`,
+        },
+      });
 
-  await createSession(user.id);
-  redirect(`/register/payment/${payment.id}`);
+      await tx.businessCategory.create({
+        data: { businessId: createdBusiness.id, mainCategoryId: category.id },
+      });
+
+      return { userId: createdUser.id, paymentId: createdPayment.id };
+    });
+
+    userId = result.userId;
+    paymentId = result.paymentId;
+  } catch (error) {
+    console.error("Shop registration failed", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      redirect("/register?error=This%20phone%20number%20or%20shop%20details%20are%20already%20saved");
+    }
+
+    redirect("/register?error=Unable%20to%20save%20shop%20details.%20Please%20try%20again");
+  }
+
+  await createSession(userId);
+  redirect(`/register/payment/${paymentId}`);
 }
