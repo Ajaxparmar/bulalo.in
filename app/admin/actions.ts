@@ -1,8 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isValidIndianPhone, normalizePhone } from "@/app/lib/phone";
@@ -10,38 +7,7 @@ import { requireAdmin } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { completeRegistrationPayment } from "@/app/lib/payments";
 import { uniqueSlug } from "@/app/lib/slug";
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const imageExtensions: Record<string, string> = {
-  "image/gif": "gif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-async function saveUploadedImage(entry: FormDataEntryValue | null, folder: string) {
-  if (!(entry instanceof File) || entry.size === 0) {
-    throw new Error("Please select an image to upload");
-  }
-
-  const extension = imageExtensions[entry.type];
-
-  if (!extension) {
-    throw new Error("Only JPG, PNG, GIF, and WebP images are allowed");
-  }
-
-  if (entry.size > MAX_IMAGE_SIZE) {
-    throw new Error("Image must be smaller than 5 MB");
-  }
-
-  const uploadDirectory = path.join(process.cwd(), "public", "uploads", folder);
-  const filename = `${Date.now()}-${randomUUID()}.${extension}`;
-
-  await mkdir(uploadDirectory, { recursive: true });
-  await writeFile(path.join(uploadDirectory, filename), Buffer.from(await entry.arrayBuffer()));
-
-  return `/uploads/${folder}/${filename}`;
-}
+import { optionalUploadedImage, saveUploadedImage } from "@/app/lib/uploads";
 
 function uploadErrorRedirect(error: unknown): never {
   const message = error instanceof Error ? error.message : "Image upload failed";
@@ -55,14 +21,6 @@ function homepageErrorRedirect(error: unknown): never {
 
 function adminRedirect(view: string, type: "success" | "error", message: string): never {
   redirect(`/admin?view=${view}&${type}=${encodeURIComponent(message)}`);
-}
-
-async function optionalUploadedImage(entry: FormDataEntryValue | null, folder: string) {
-  if (!(entry instanceof File) || entry.size === 0) {
-    return null;
-  }
-
-  return saveUploadedImage(entry, folder);
 }
 
 export async function createCategoryAction(formData: FormData) {
@@ -273,22 +231,64 @@ export async function updateBusinessAction(formData: FormData) {
 
   const businessId = String(formData.get("businessId") || "");
   const name = String(formData.get("name") || "").trim();
+  const phone = normalizePhone(String(formData.get("phone") || ""));
+  const whatsappInput = String(formData.get("whatsapp") || "").trim();
+  const whatsapp = whatsappInput ? normalizePhone(whatsappInput) : null;
+  const email = String(formData.get("email") || "").trim() || null;
+  const website = String(formData.get("website") || "").trim() || null;
+  const address = String(formData.get("address") || "").trim();
   const city = String(formData.get("city") || "").trim();
+  const state = String(formData.get("state") || "").trim();
+  const pincode = String(formData.get("pincode") || "").trim();
+  const description = String(formData.get("description") || "").trim() || null;
   const status = String(formData.get("status") || "");
   const isTopListing = String(formData.get("isTopListing")) === "true";
   const allowedStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
 
-  if (!businessId || !name || !city || !allowedStatuses.includes(status)) {
+  if (
+    !businessId
+    || !name
+    || !isValidIndianPhone(phone)
+    || (whatsapp && !isValidIndianPhone(whatsapp))
+    || !address
+    || !city
+    || !state
+    || !/^\d{6}$/.test(pincode)
+    || !allowedStatuses.includes(status)
+  ) {
     adminRedirect("businesses", "error", "Enter valid business details");
+  }
+
+  let logoUrl: string | null = null;
+  let coverUrl: string | null = null;
+
+  try {
+    [logoUrl, coverUrl] = await Promise.all([
+      optionalUploadedImage(formData.get("logo"), "businesses"),
+      optionalUploadedImage(formData.get("cover"), "businesses"),
+    ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Image upload failed";
+    adminRedirect("businesses", "error", message);
   }
 
   await prisma.business.update({
     where: { id: businessId },
     data: {
       name,
+      phone,
+      whatsapp,
+      email,
+      website,
+      address,
       city,
+      state,
+      pincode,
+      description,
       status: status as "PENDING_PAYMENT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "REJECTED",
       isTopListing,
+      ...(logoUrl ? { logoUrl } : {}),
+      ...(coverUrl ? { coverUrl } : {}),
     },
   });
   revalidatePath("/admin");

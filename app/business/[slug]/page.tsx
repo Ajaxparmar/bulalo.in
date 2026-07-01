@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import { ratingSummary } from "@/app/lib/rating";
@@ -22,6 +23,23 @@ export default async function BusinessDetailPage({
 
   if (!business) {
     notFound();
+  }
+
+  const headerStore = await headers();
+  const forwardedFor = headerStore.get("x-forwarded-for");
+  const ipAddress = forwardedFor?.split(",")[0]?.trim() || headerStore.get("x-real-ip");
+  try {
+    await prisma.businessVisit.create({
+      data: {
+        businessId: business.id,
+        ipAddress,
+        userAgent: headerStore.get("user-agent"),
+        referrer: headerStore.get("referer"),
+        path: `/business/${slug}`,
+      },
+    });
+  } catch (error) {
+    console.error("Business visit logging failed", error);
   }
 
   const summary = ratingSummary(business.ratings);

@@ -21,7 +21,6 @@ import {
   deleteUserAction,
   saveRazorpaySettingsAction,
   saveContentPagesAction,
-  updateBusinessAction,
   updateCategoryAction,
   updateHomepageBannerAction,
   updateHomepageCardAction,
@@ -35,11 +34,11 @@ import {
 import ConfirmSubmitButton from "@/app/admin/ConfirmSubmitButton";
 import AdminActionConfirm from "@/app/admin/AdminActionConfirm";
 import ImageUploadField from "@/app/admin/ImageUploadField";
+import AdminBusinessEditModal from "@/app/admin/AdminBusinessEditModal";
 
 export const dynamic = "force-dynamic";
 
 const paymentStatuses = ["CREATED", "AUTHORIZED", "CAPTURED", "FAILED", "REFUNDED"];
-const businessStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
 const adminViews = ["overview", "homepage", "pages", "businesses", "users", "payments", "plans", "categories", "settings"] as const;
 type AdminView = (typeof adminViews)[number];
 
@@ -100,7 +99,17 @@ export default async function AdminPage({
       select: {
         id: true,
         name: true,
+        phone: true,
+        whatsapp: true,
+        email: true,
+        website: true,
+        address: true,
         city: true,
+        state: true,
+        pincode: true,
+        description: true,
+        logoUrl: true,
+        coverUrl: true,
         status: true,
         isTopListing: true,
         createdAt: true,
@@ -592,45 +601,32 @@ export default async function AdminPage({
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Name</th><th>City</th><th>Status</th><th>Top listing</th><th>Joined</th><th>Actions</th></tr>
+                  <tr><th>Name</th><th>Phone</th><th>City</th><th>Status</th><th>Top listing</th><th>Joined</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
-              {businesses.map((business) => (
-                <tr key={business.id}>
-                  <td><input form={`business-${business.id}`} name="name" defaultValue={business.name} required /></td>
-                  <td><input form={`business-${business.id}`} name="city" defaultValue={business.city} required /></td>
-                  <td>
-                    <select form={`business-${business.id}`} name="status" defaultValue={business.status}>
-                      {businessStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <select form={`business-${business.id}`} name="isTopListing" defaultValue={String(business.isTopListing)}>
-                      <option value="true">Featured</option>
-                      <option value="false">Standard</option>
-                    </select>
-                  </td>
-                  <td>{business.createdAt.toLocaleDateString("en-IN")}</td>
-                  <td>
-                    <div className="admin-row-actions">
-                      <form id={`business-${business.id}`} action={updateBusinessAction}>
-                        <input type="hidden" name="businessId" value={business.id} />
-                        <ConfirmSubmitButton
-                          className=""
-                          message={`Update ${business.name}?`}
-                        >
-                          Save
-                        </ConfirmSubmitButton>
-                      </form>
-                      <form action={deleteBusinessAction}>
-                        <input type="hidden" name="businessId" value={business.id} />
-                        <ConfirmSubmitButton message={`Delete ${business.name} and all related records?`}>Delete</ConfirmSubmitButton>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {businesses.length === 0 ? <tr><td colSpan={6}>No businesses enrolled yet.</td></tr> : null}
+                  {businesses.map((business) => (
+                    <tr key={business.id}>
+                      <td>
+                        <strong>{business.name}</strong>
+                        <small className="admin-table-subtext">{business.address}</small>
+                      </td>
+                      <td>{business.phone}</td>
+                      <td>{business.city}</td>
+                      <td><span className="status-pill">{business.status.replaceAll("_", " ")}</span></td>
+                      <td>{business.isTopListing ? "Featured" : "Standard"}</td>
+                      <td>{business.createdAt.toLocaleDateString("en-IN")}</td>
+                      <td>
+                        <div className="admin-row-actions">
+                          <AdminBusinessEditModal business={business} />
+                          <form action={deleteBusinessAction}>
+                            <input type="hidden" name="businessId" value={business.id} />
+                            <ConfirmSubmitButton message={`Delete ${business.name} and all related records?`}>Delete</ConfirmSubmitButton>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {businesses.length === 0 ? <tr><td colSpan={7}>No businesses enrolled yet.</td></tr> : null}
                 </tbody>
               </table>
             </div>

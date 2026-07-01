@@ -99,11 +99,27 @@ model Business {
   categories    BusinessCategory[]
   subscriptions BusinessSubscription[]
   ratings       BusinessRating[]
+  visits        BusinessVisit[]
 
   @@index([ownerId])
   @@index([status])
   @@index([isTopListing, status])
   @@index([city, status])
+}
+
+model BusinessVisit {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId String   @db.ObjectId
+  ipAddress  String?
+  userAgent  String?
+  referrer   String?
+  path       String?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([createdAt])
 }
 
 model BusinessRating {
