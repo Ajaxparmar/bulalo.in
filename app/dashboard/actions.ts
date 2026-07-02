@@ -25,6 +25,8 @@ export async function updateOwnerBusinessAction(formData: FormData) {
   const state = String(formData.get("state") || "").trim();
   const pincode = String(formData.get("pincode") || "").trim();
   const description = String(formData.get("description") || "").trim() || null;
+  const removeLogo = String(formData.get("removeLogo")) === "true";
+  const removeCover = String(formData.get("removeCover")) === "true";
 
   if (
     !businessId
@@ -73,8 +75,8 @@ export async function updateOwnerBusinessAction(formData: FormData) {
       state,
       pincode,
       description,
-      ...(logoUrl ? { logoUrl } : {}),
-      ...(coverUrl ? { coverUrl } : {}),
+      ...(logoUrl ? { logoUrl } : removeLogo ? { logoUrl: null } : {}),
+      ...(coverUrl ? { coverUrl } : removeCover ? { coverUrl: null } : {}),
     },
   });
 

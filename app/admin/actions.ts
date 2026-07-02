@@ -243,6 +243,8 @@ export async function updateBusinessAction(formData: FormData) {
   const description = String(formData.get("description") || "").trim() || null;
   const status = String(formData.get("status") || "");
   const isTopListing = String(formData.get("isTopListing")) === "true";
+  const removeLogo = String(formData.get("removeLogo")) === "true";
+  const removeCover = String(formData.get("removeCover")) === "true";
   const allowedStatuses = ["PENDING_PAYMENT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED"];
 
   if (
@@ -287,8 +289,8 @@ export async function updateBusinessAction(formData: FormData) {
       description,
       status: status as "PENDING_PAYMENT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "REJECTED",
       isTopListing,
-      ...(logoUrl ? { logoUrl } : {}),
-      ...(coverUrl ? { coverUrl } : {}),
+      ...(logoUrl ? { logoUrl } : removeLogo ? { logoUrl: null } : {}),
+      ...(coverUrl ? { coverUrl } : removeCover ? { coverUrl: null } : {}),
     },
   });
   revalidatePath("/admin");

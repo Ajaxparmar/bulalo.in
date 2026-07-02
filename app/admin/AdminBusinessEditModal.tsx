@@ -102,8 +102,8 @@ export default function AdminBusinessEditModal({ business }: { business: AdminBu
                   Description
                   <textarea name="description" defaultValue={business.description || ""} rows={4} />
                 </label>
-                <ImageUploadField label="Logo image" name="logo" required={false} currentImageUrl={business.logoUrl || ""} />
-                <ImageUploadField label="Cover image" name="cover" required={false} currentImageUrl={business.coverUrl || ""} />
+                <ImageUploadField label="Logo image" name="logo" required={false} currentImageUrl={business.logoUrl || ""} deleteName="removeLogo" />
+                <ImageUploadField label="Cover image" name="cover" required={false} currentImageUrl={business.coverUrl || ""} deleteName="removeCover" />
               </div>
               <div className="admin-modal-actions">
                 <button type="button" className="secondary-button" onClick={() => setIsOpen(false)}>Cancel</button>

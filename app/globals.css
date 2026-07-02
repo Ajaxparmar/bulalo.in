@@ -529,6 +529,40 @@ body {
   margin-top: 18px;
 }
 
+.image-delete-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.image-delete-option input {
+  width: auto;
+  margin: 0;
+}
+
+.image-upload-error {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.admin-image-missing {
+  display: block;
+  margin-top: 8px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  background: #fef2f2;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .status-pill {
   display: inline-flex;
   width: max-content;

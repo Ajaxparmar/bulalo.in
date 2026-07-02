@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ratingSummary } from "@/app/lib/rating";
+import SafeImage from "@/app/components/SafeImage";
 
 type ListingBusiness = {
   id: string;
@@ -33,15 +34,17 @@ export default function BusinessListingCard({ business }: { business: ListingBus
     <article className="result-card">
       <Link href={`/business/${business.slug}`} className="result-card-detail-link">
         <div className="result-card-media">
-          {business.coverUrl || business.logoUrl ? (
-            <img
-              className="result-card-image"
-              src={business.coverUrl || business.logoUrl || ""}
-              alt={business.name}
-            />
-          ) : (
-            <div className="result-card-placeholder">{business.name.slice(0, 1)}</div>
-          )}
+          <SafeImage
+            className="result-card-image"
+            src={business.coverUrl || business.logoUrl}
+            alt={business.name}
+            fallback={<div className="result-card-placeholder">{business.name.slice(0, 1)}</div>}
+          />
+          {business.logoUrl ? (
+            <span className="result-card-logo">
+              <SafeImage src={business.logoUrl} alt={`${business.name} logo`} />
+            </span>
+          ) : null}
           {primaryCategory ? <span className="result-card-category">{primaryCategory.name}</span> : null}
         </div>
 

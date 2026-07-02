@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import { ratingSummary } from "@/app/lib/rating";
+import SafeImage from "@/app/components/SafeImage";
 import RatingForm from "./RatingForm";
 
 export const dynamic = "force-dynamic";
@@ -55,13 +56,18 @@ export default async function BusinessDetailPage({
 
       <section className="business-detail-hero">
         <div className="business-detail-cover">
-          {business.coverUrl || business.logoUrl ? (
-            <img src={business.coverUrl || business.logoUrl || ""} alt={business.name} />
-          ) : (
-            <div className="result-card-placeholder">{business.name.slice(0, 1)}</div>
-          )}
+          <SafeImage
+            src={business.coverUrl || business.logoUrl}
+            alt={business.name}
+            fallback={<div className="result-card-placeholder">{business.name.slice(0, 1)}</div>}
+          />
         </div>
         <div className="business-detail-summary">
+          {business.logoUrl ? (
+            <div className="business-detail-logo">
+              <SafeImage src={business.logoUrl} alt={`${business.name} logo`} />
+            </div>
+          ) : null}
           <h1>{business.name} <span><i className="fas fa-check" /> Verified</span></h1>
           <div className="business-detail-rating">
             <span>★★★★★</span><strong>{summary.formatted}</strong><small>{summary.count} total ratings</small>

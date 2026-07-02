@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 const imageExtensions: Record<string, string> = {
   "image/gif": "gif",
   "image/jpeg": "jpg",
@@ -24,7 +24,7 @@ export async function saveUploadedImage(entry: FormDataEntryValue | null, folder
   }
 
   if (entry.size > MAX_IMAGE_SIZE) {
-    throw new Error("Image must be smaller than 5 MB");
+    throw new Error("Image size is too large. Maximum allowed size is 3 MB");
   }
 
   const uploadDirectory = path.join(process.cwd(), "public", "uploads", folder);
