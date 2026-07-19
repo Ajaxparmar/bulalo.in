@@ -45,7 +45,7 @@ type AdminView = (typeof adminViews)[number];
 const viewDetails: Record<AdminView, { title: string; description: string }> = {
   overview: { title: "Dashboard overview", description: "Here is what is happening with Bulalo.in today." },
   homepage: { title: "Homepage content", description: "Manage the clickable cards shown at the bottom of the homepage." },
-  pages: { title: "Pages & footer", description: "Manage popular categories and About and Contact page content." },
+  pages: { title: "Pages & footer", description: "Manage homepage popular categories and About and Contact page content." },
   businesses: { title: "Businesses", description: "Review enrolled businesses and their current status." },
   users: { title: "Enrolled users", description: "View registered shop owners and their activity." },
   payments: { title: "Payments", description: "Track income and update payment statuses." },
@@ -297,7 +297,7 @@ export default async function AdminPage({
           <>
             <section className="admin-grid">
               <div className="admin-white-panel">
-                <h2>Add popular footer category</h2>
+                <h2>Add popular category</h2>
                 <form action={addFooterPopularCategoryAction} className="stack-form compact">
                   <label>
                     Category
@@ -331,7 +331,7 @@ export default async function AdminPage({
                       </form>
                     </div>
                   ))}
-                  {footerPopularCategories.length === 0 ? <p className="empty-state">No popular footer categories selected.</p> : null}
+                  {footerPopularCategories.length === 0 ? <p className="empty-state">No popular categories selected.</p> : null}
                 </div>
               </div>
             </section>
@@ -356,8 +356,13 @@ export default async function AdminPage({
                   <textarea name="contact_body" rows={4} defaultValue={settingValue(settings, "contact_body")} />
                 </label>
                 <label>Contact phone<input name="contact_phone" defaultValue={settingValue(settings, "contact_phone", "+91 98128 66228")} /></label>
-                <label>Contact email<input name="contact_email" type="email" defaultValue={settingValue(settings, "contact_email", "help@bulalo.in")} /></label>
+                <label>Contact email<input name="contact_email" defaultValue={settingValue(settings, "contact_email", "help@bulalo.in")} /></label>
                 <label className="full">Contact address<textarea name="contact_address" rows={3} defaultValue={settingValue(settings, "contact_address", "Jind, Haryana, India")} /></label>
+                <label className="full">
+                  Office map location
+                  <textarea name="contact_map_location" rows={3} defaultValue={settingValue(settings, "contact_map_location", settingValue(settings, "contact_address", "Jind, Haryana, India"))} />
+                  <small className="admin-field-help">Enter the full office address or Google Maps place name to show on the contact page map.</small>
+                </label>
                 <button type="submit" className="primary-button">Save pages</button>
               </form>
             </section>

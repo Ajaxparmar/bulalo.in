@@ -769,6 +769,7 @@ export async function saveContentPagesAction(formData: FormData) {
     ["contact_phone", "Contact phone", String(formData.get("contact_phone") || "").trim(), false],
     ["contact_email", "Contact email", String(formData.get("contact_email") || "").trim(), false],
     ["contact_address", "Contact address", String(formData.get("contact_address") || "").trim(), false],
+    ["contact_map_location", "Office map location", String(formData.get("contact_map_location") || "").trim(), false],
   ] as const;
 
   await Promise.all(

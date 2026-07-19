@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export type HeaderSlide = {
@@ -36,16 +36,20 @@ export default function HomeTopBannerSlider({ slides }: { slides: HeaderSlide[] 
   return (
     <div className="home-promo-slider">
       {slides.map((slide, index) => (
-        <Link
+        <div
           key={slide.id}
-          href={slide.href}
-          className={`home-promo-placeholder ${slide.tone || ""} ${index === activeSlide ? "active" : ""}`}
+          className={`home-promo-placeholder ${slide.imageUrl ? "has-image" : ""} ${slide.tone || ""} ${index === activeSlide ? "active" : ""}`}
           aria-hidden={index !== activeSlide}
-          tabIndex={index === activeSlide ? 0 : -1}
-          style={slide.imageUrl ? { backgroundImage: `url("${slide.imageUrl}")` } : undefined}
         >
           {slide.imageUrl ? (
-            <span className="sr-only">{slide.imageAlt || slide.title}</span>
+            <Image
+              className="home-promo-image"
+              src={slide.imageUrl}
+              alt={slide.imageAlt || slide.title}
+              fill
+              sizes="(max-width: 700px) 100vw, (max-width: 1200px) 100vw, 58vw"
+              priority={index === 0}
+            />
           ) : (
             <>
               <div>
@@ -56,7 +60,7 @@ export default function HomeTopBannerSlider({ slides }: { slides: HeaderSlide[] 
               <i className="far fa-image" aria-hidden="true" />
             </>
           )}
-        </Link>
+        </div>
       ))}
 
       {slides.length > 1 ? (

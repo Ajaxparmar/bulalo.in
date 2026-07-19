@@ -1,36 +1,10 @@
 import Link from "next/link";
-import { prisma } from "@/app/lib/prisma";
 
-export default async function Footer() {
-  const popularCategories = await prisma.footerPopularCategory.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    take: 8,
-    include: { mainCategory: { select: { name: true, slug: true, isActive: true } } },
-  });
-
+export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
         <div className="site-footer-grid">
-          <div className="site-footer-column">
-            <h4>Popular Categories</h4>
-            <div className="site-footer-links">
-              {popularCategories
-                .filter((entry) => entry.mainCategory.isActive)
-                .map((entry) => (
-                  <Link
-                    key={entry.id}
-                    href={`/category/${entry.mainCategory.slug}`}
-                  >
-                    <i className="fas fa-chevron-right" />
-                    {entry.mainCategory.name}
-                  </Link>
-                ))}
-              {popularCategories.length === 0 ? <span>Categories coming soon</span> : null}
-            </div>
-          </div>
-
           <div className="site-footer-column">
             <h4>Quick Links</h4>
             <div className="site-footer-links">
@@ -48,7 +22,6 @@ export default async function Footer() {
               <Link href="/about/terms"><i className="fas fa-chevron-right" /> Terms & Conditions</Link>
               <Link href="/about/privacy"><i className="fas fa-chevron-right" /> Privacy Policy</Link>
               <Link href="/about/refund"><i className="fas fa-chevron-right" /> Refund Policy</Link>
-              <Link href="/about/shipping"><i className="fas fa-chevron-right" /> Shipping Policy</Link>
             </div>
           </div>
 
