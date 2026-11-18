@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { Prisma } from "@/app/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { createSession, hashPassword } from "@/app/lib/auth";
 import { isValidIndianPhone, normalizePhone, phoneLookupCandidates } from "@/app/lib/phone";
 import { prisma } from "@/app/lib/prisma";
