@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@/app/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 
 export async function completeRegistrationPayment(
